@@ -245,7 +245,17 @@ while IFS= read -r -d '' f; do
   # Collapse file to single line, strip whitespace, then match 64-integer array
   compact=$(tr -d '[:space:]' < "$f" 2>/dev/null) || continue
   if [[ "$compact" =~ ^\[([0-9]{1,3},){63}[0-9]{1,3}\]$ ]]; then
-    emit "CRITICAL" "web3_solana_keypair_json" "$f" "-" "Potential Solana keypair JSON file (64-byte array)" "Remove keypair file and generate a new wallet"
+    # Validate every element is 0-255 (byte range)
+    inner="${compact#\[}"
+    inner="${inner%\]}"
+    valid=true
+    IFS=',' read -ra nums <<< "$inner"
+    for n in "${nums[@]}"; do
+      [[ "$n" -le 255 ]] 2>/dev/null || { valid=false; break; }
+    done
+    if [[ "$valid" == "true" ]]; then
+      emit "CRITICAL" "web3_solana_keypair_json" "$f" "-" "Potential Solana keypair JSON file (64-byte array)" "Remove keypair file and generate a new wallet"
+    fi
   fi
 done < <(find "$REPO_PATH" -type f -name '*.json' -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
 
