@@ -96,6 +96,7 @@ create_deep_dirs() {
 # ============================================================
 
 # Run a check script against FIXTURE_REPO. Sets OUTPUT, STDERR, EXIT_CODE.
+# Automatically asserts EXIT_CODE=0 (catches silent crashes).
 # Usage: run_check "$SCANNER_DIR/check_something.sh"
 run_check() {
   local script="$1"
@@ -108,6 +109,9 @@ run_check() {
   OUTPUT=$(cat "$tmpout")
   STDERR=$(cat "$tmpeerr")
   rm -f "$tmpout" "$tmpeerr"
+  if [[ "$EXIT_CODE" -ne 0 ]]; then
+    _fail "run_check $(basename "$script")" "script exited with code $EXIT_CODE"
+  fi
 }
 
 # ============================================================
