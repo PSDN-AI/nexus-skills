@@ -51,9 +51,13 @@ while IFS= read -r result; do
   snippet=$(echo "$result" | cut -d: -f3- | head -c 100)
   emit "HIGH" "internal_reference" "$f" "$ln" "Internal/confidential reference found: ${snippet}" "Remove internal references before making repo public"
 done < <(grep -rnEi "$keywords" "$REPO_PATH" \
-  --include='*.{md,txt,yml,yaml,json,toml,cfg,conf,ini,sh,py,js,ts,go,rb,java,rs}' \
-  --exclude-dir='.git' \
-  2>/dev/null || true)
+  --include='*.md' --include='*.txt' --include='*.yml' --include='*.yaml' \
+  --include='*.json' --include='*.toml' --include='*.cfg' --include='*.conf' \
+  --include='*.ini' --include='*.sh' --include='*.py' --include='*.js' \
+  --include='*.ts' --include='*.go' --include='*.rb' --include='*.java' \
+  --include='*.rs' \
+  --exclude-dir='.git' --exclude-dir='.claude' \
+  2>/dev/null | grep -v 'check_compliance\.sh' || true)
 
 # --- Copyright headers (informational) ---
 # Sample up to 20 source files and check for copyright headers

@@ -16,8 +16,12 @@ while IFS= read -r result; do
   snippet=$(echo "$result" | cut -d: -f3- | sed 's/|/∣/g' | head -c 120)
   emit "LOW" "todo_comment" "$f" "$ln" "TODO/FIXME/HACK comment: ${snippet}" "Resolve or remove before public release"
 done < <(grep -rnEi '\b(TODO|FIXME|HACK|XXX)\b' "$REPO_PATH" \
-  --include='*.{sh,py,js,ts,jsx,tsx,go,rb,java,rs,c,cpp,h,hpp,css,scss,vue,svelte}' \
-  2>/dev/null || true)
+  --include='*.sh' --include='*.py' --include='*.js' --include='*.ts' \
+  --include='*.jsx' --include='*.tsx' --include='*.go' --include='*.rb' \
+  --include='*.java' --include='*.rs' --include='*.c' --include='*.cpp' \
+  --include='*.h' --include='*.hpp' --include='*.css' --include='*.scss' \
+  --include='*.vue' --include='*.svelte' \
+  2>/dev/null | grep -v 'check_code_quality\.sh' || true)
 
 # --- shellcheck (if available) ---
 if command -v shellcheck &>/dev/null; then

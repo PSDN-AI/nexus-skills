@@ -6,6 +6,16 @@ set -euo pipefail
 REPO_PATH="${1:?Usage: check_secrets.sh <repo_path>}"
 FINDINGS=0
 
+# Common source file includes for grep (brace expansion doesn't work in --include)
+SOURCE_INCLUDES=(
+  --include='*.sh' --include='*.py' --include='*.js' --include='*.ts'
+  --include='*.go' --include='*.rb' --include='*.java' --include='*.rs'
+  --include='*.yml' --include='*.yaml' --include='*.json' --include='*.toml'
+  --include='*.xml' --include='*.cfg' --include='*.conf' --include='*.ini'
+  --include='*.tf' --include='*.tfvars' --include='*.env' --include='*.env.*'
+  --exclude-dir='.git' --exclude-dir='node_modules' --exclude-dir='.claude'
+)
+
 emit() {
   echo "$1|$2|$3|$4|$5|$6"
   FINDINGS=$((FINDINGS + 1))
@@ -39,14 +49,14 @@ while IFS= read -r result; do
   f=$(echo "$result" | cut -d: -f1)
   ln=$(echo "$result" | cut -d: -f2)
   emit "CRITICAL" "aws_credentials" "$f" "$ln" "Potential AWS access key found (AKIA pattern)" "Remove and rotate AWS credentials"
-done < <(grep -rnE '(AKIA[0-9A-Z]{16}|aws_secret_access_key\s*=)' "$REPO_PATH" --include='*.{sh,py,js,ts,go,rb,java,yml,yaml,json,toml,cfg,conf,ini,env,env.*,tf,tfvars}' 2>/dev/null || true)
+done < <(grep -rnE '(AKIA[0-9A-Z]{16}|aws_secret_access_key\s*=)' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
 
 # --- Generic secret patterns ---
 while IFS= read -r result; do
   f=$(echo "$result" | cut -d: -f1)
   ln=$(echo "$result" | cut -d: -f2)
   emit "HIGH" "hardcoded_secret" "$f" "$ln" "Potential hardcoded secret or token" "Move secret to environment variable or vault"
-done < <(grep -rnEi '(api[_-]?key|api[_-]?secret|auth[_-]?token|access[_-]?token|secret[_-]?key|private[_-]?key|password)\s*[:=]\s*["\x27][A-Za-z0-9+/=_-]{8,}' "$REPO_PATH" --include='*.{sh,py,js,ts,go,rb,java,yml,yaml,json,toml,cfg,conf,ini,tf,tfvars}' 2>/dev/null || true)
+done < <(grep -rnEi '(api[_-]?key|api[_-]?secret|auth[_-]?token|access[_-]?token|secret[_-]?key|private[_-]?key|password)\s*[:=]\s*["\x27][A-Za-z0-9+/=_-]{8,}' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
 
 # --- Hardcoded IPs / internal domains ---
 while IFS= read -r result; do
@@ -58,7 +68,7 @@ while IFS= read -r result; do
     127.0.0.1|0.0.0.0|255.255.255.*|169.254.169.254) continue ;;
   esac
   emit "HIGH" "hardcoded_ip" "$f" "$ln" "Hardcoded IP address found: $matched" "Replace with configurable hostname or DNS"
-done < <(grep -rnE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' "$REPO_PATH" --include='*.{sh,py,js,ts,go,rb,java,yml,yaml,json,toml,cfg,conf,ini,tf,tfvars}' 2>/dev/null | grep -vE '(127\.0\.0\.1|0\.0\.0\.0|255\.255\.255|169\.254\.169\.254|version|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-|\.\*)' || true)
+done < <(grep -rnE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null | grep -vE '(127\.0\.0\.1|0\.0\.0\.0|255\.255\.255|169\.254\.169\.254|version|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-|\.\*)' || true)
 
 # --- PII: email addresses in source code ---
 while IFS= read -r result; do
@@ -71,7 +81,7 @@ while IFS= read -r result; do
   esac
   emit "HIGH" "pii_email" "$f" "$ln" "Email address found: ${matched}" "Remove personal email or replace with a generic contact"
 done < <(grep -rnEi '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' "$REPO_PATH" \
-  --include='*.{sh,py,js,ts,go,rb,java,yml,yaml,json,toml,cfg,conf,ini,tf,tfvars,md,txt,html,xml}' \
+  "${SOURCE_INCLUDES[@]}" --include='*.md' --include='*.txt' --include='*.html' --include='*.xml' \
   --exclude-dir='.git' --exclude-dir='node_modules' \
   2>/dev/null | grep -vEi '(example\.com|example\.org|localhost|users\.noreply\.github\.com|noreply@|@spdx\.org|@changeset)' || true)
 
@@ -81,7 +91,7 @@ while IFS= read -r result; do
   ln=$(echo "$result" | cut -d: -f2)
   emit "HIGH" "pii_phone" "$f" "$ln" "Potential phone number found in source code" "Remove personal phone numbers before going public"
 done < <(grep -rnE '(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b' "$REPO_PATH" \
-  --include='*.{sh,py,js,ts,go,rb,java,yml,yaml,json,toml,cfg,conf,ini,md,txt,html}' \
+  "${SOURCE_INCLUDES[@]}" --include='*.md' --include='*.txt' --include='*.html' \
   --exclude-dir='.git' --exclude-dir='node_modules' \
   2>/dev/null | grep -vE '(test|mock|fake|example|fixture|sample|placeholder|0000|1234|5551)' || true)
 
