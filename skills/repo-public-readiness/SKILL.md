@@ -39,7 +39,7 @@ If an optional tool is not installed, the scanner reports the check as **SKIPPED
    - **Legal & Compliance** — license validation, internal references
 4. A Markdown report is generated to stdout (pipe to file if needed):
    ```bash
-   ./scanner/run_scan.sh /path/to/repo > report.md
+   ./skills/repo-public-readiness/scanner/run_scan.sh /path/to/repo > report.md
    ```
 5. Review the report. The overall verdict is:
    - **NOT READY** — any CRITICAL finding exists (block release)
