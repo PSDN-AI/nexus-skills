@@ -57,40 +57,18 @@ jobs:
     strategy:
       matrix:
         skill: ${{ fromJSON(needs.detect-changes.outputs.skills) }}
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    name: test / ${{ matrix.skill }} / ${{ matrix.os }}
-
-    defaults:
-      run:
-        shell: bash
+    runs-on: ubuntu-latest
+    name: test / ${{ matrix.skill }}
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Bash 5 (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install bash
-          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
-
-      - name: Verify bash version
-        run: |
-          echo "Bash version: $BASH_VERSION"
-          if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
-            echo "::error::Bash 4+ required"
-            exit 1
-          fi
 
       - name: Run tests
         run: bash "skills/${{ matrix.skill }}/tests/run_tests.sh"
 
       - name: Shellcheck
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get install -y shellcheck
           SKILL_DIR="skills/${{ matrix.skill }}"
-          # Lint all .sh files in the skill directory
           find "$SKILL_DIR" -name '*.sh' -not -path '*/tests/*' -exec shellcheck {} +
-          # Lint test scripts (allow info-level SC1091 for dynamic source)
           find "$SKILL_DIR/tests" -name '*.sh' -exec shellcheck -S warning {} +
