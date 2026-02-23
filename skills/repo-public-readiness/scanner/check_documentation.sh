@@ -64,4 +64,30 @@ if [[ -z "$coc" ]]; then
   emit "LOW" "coc_missing" "$REPO_PATH" "-" "No Code of Conduct found" "Consider adding CODE_OF_CONDUCT.md (e.g., Contributor Covenant)"
 fi
 
+# --- SECURITY.md exists ---
+security_md=""
+for name in SECURITY.md .github/SECURITY.md; do
+  if [[ -f "$REPO_PATH/$name" ]]; then
+    security_md="$REPO_PATH/$name"
+    break
+  fi
+done
+
+if [[ -z "$security_md" ]]; then
+  emit "MEDIUM" "security_md_missing" "$REPO_PATH" "-" "No SECURITY.md found — users have no way to report vulnerabilities" "Add SECURITY.md with vulnerability reporting instructions and response process"
+fi
+
+# --- CHANGELOG.md exists ---
+changelog=""
+for name in CHANGELOG.md CHANGELOG.txt CHANGES.md HISTORY.md; do
+  if [[ -f "$REPO_PATH/$name" ]]; then
+    changelog="$REPO_PATH/$name"
+    break
+  fi
+done
+
+if [[ -z "$changelog" ]]; then
+  emit "LOW" "changelog_missing" "$REPO_PATH" "-" "No CHANGELOG found" "Consider adding CHANGELOG.md to track notable changes across releases"
+fi
+
 exit 0

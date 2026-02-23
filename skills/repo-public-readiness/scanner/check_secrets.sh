@@ -60,6 +60,47 @@ while IFS= read -r result; do
   emit "HIGH" "hardcoded_ip" "$f" "$ln" "Hardcoded IP address found: $matched" "Replace with configurable hostname or DNS"
 done < <(grep -rnE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' "$REPO_PATH" --include='*.{sh,py,js,ts,go,rb,java,yml,yaml,json,toml,cfg,conf,ini,tf,tfvars}' 2>/dev/null | grep -vE '(127\.0\.0\.1|0\.0\.0\.0|255\.255\.255|169\.254\.169\.254|version|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-|\.\*)' || true)
 
+# --- PII: email addresses in source code ---
+while IFS= read -r result; do
+  f=$(echo "$result" | cut -d: -f1)
+  ln=$(echo "$result" | cut -d: -f2)
+  matched=$(echo "$result" | grep -oEi '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
+  # Skip common non-personal emails
+  case "$matched" in
+    *@example.com|*@example.org|*@localhost|*@users.noreply.github.com|noreply@*) continue ;;
+  esac
+  emit "HIGH" "pii_email" "$f" "$ln" "Email address found: ${matched}" "Remove personal email or replace with a generic contact"
+done < <(grep -rnEi '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' "$REPO_PATH" \
+  --include='*.{sh,py,js,ts,go,rb,java,yml,yaml,json,toml,cfg,conf,ini,tf,tfvars,md,txt,html,xml}' \
+  --exclude-dir='.git' --exclude-dir='node_modules' \
+  2>/dev/null | grep -vEi '(example\.com|example\.org|localhost|users\.noreply\.github\.com|noreply@|@spdx\.org|@changeset)' || true)
+
+# --- PII: phone numbers in source code ---
+while IFS= read -r result; do
+  f=$(echo "$result" | cut -d: -f1)
+  ln=$(echo "$result" | cut -d: -f2)
+  emit "HIGH" "pii_phone" "$f" "$ln" "Potential phone number found in source code" "Remove personal phone numbers before going public"
+done < <(grep -rnE '(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b' "$REPO_PATH" \
+  --include='*.{sh,py,js,ts,go,rb,java,yml,yaml,json,toml,cfg,conf,ini,md,txt,html}' \
+  --exclude-dir='.git' --exclude-dir='node_modules' \
+  2>/dev/null | grep -vE '(test|mock|fake|example|fixture|sample|placeholder|0000|1234|5551)' || true)
+
+# --- GitHub Actions: hardcoded secrets in workflows ---
+if [[ -d "$REPO_PATH/.github/workflows" ]]; then
+  while IFS= read -r result; do
+    f=$(echo "$result" | cut -d: -f1)
+    ln=$(echo "$result" | cut -d: -f2)
+    emit "CRITICAL" "actions_hardcoded_secret" "$f" "$ln" "Potential hardcoded secret in GitHub Actions workflow" "Use GitHub Actions secrets (secrets.YOUR_SECRET) instead of hardcoded values"
+  done < <(grep -rnEi '(api[_-]?key|token|password|secret|credential)\s*[:=]\s*["\x27][A-Za-z0-9+/=_-]{8,}' "$REPO_PATH/.github/workflows/" --include='*.yml' --include='*.yaml' 2>/dev/null || true)
+
+  # Unsafe use of github.event context (script injection risk)
+  while IFS= read -r result; do
+    f=$(echo "$result" | cut -d: -f1)
+    ln=$(echo "$result" | cut -d: -f2)
+    emit "HIGH" "actions_script_injection" "$f" "$ln" "Unsafe use of github.event context — potential script injection" "Use an intermediate environment variable instead of inline expression"
+  done < <(grep -rnE '\$\{\{\s*github\.event\.(issue|pull_request|comment)\.(title|body|head\.ref)' "$REPO_PATH/.github/workflows/" --include='*.yml' --include='*.yaml' 2>/dev/null || true)
+fi
+
 # --- gitleaks (if available) ---
 if command -v gitleaks &>/dev/null; then
   while IFS= read -r leak_line; do
