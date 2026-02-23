@@ -231,11 +231,12 @@ while IFS= read -r result; do
   emit "CRITICAL" "web3_solana_keypair" "$f" "$ln" "Potential Solana private keypair found (base58, 87-88 chars)" "Remove keypair and generate a new wallet"
 done < <(grep -rnEi '(solana|keypair|phantom|secret)\s*[:=]\s*["\x27]?[1-9A-HJ-NP-Za-km-z]{87,88}["\x27]?' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
 
-# Solana keypair JSON format: array of 64 integers
+# Solana keypair JSON format: array of 64 integers (may span multiple lines)
 while IFS= read -r -d '' f; do
   [[ -f "$f" ]] || continue
-  # Check for JSON arrays with exactly 64 integer elements (Solana keypair byte array)
-  if grep -qE '^\s*\[\s*[0-9]{1,3}(\s*,\s*[0-9]{1,3}){63}\s*\]\s*$' "$f" 2>/dev/null; then
+  # Collapse file to single line, strip whitespace, then match 64-integer array
+  compact=$(tr -d '[:space:]' < "$f" 2>/dev/null) || continue
+  if [[ "$compact" =~ ^\[([0-9]{1,3},){63}[0-9]{1,3}\]$ ]]; then
     emit "CRITICAL" "web3_solana_keypair_json" "$f" "-" "Potential Solana keypair JSON file (64-byte array)" "Remove keypair file and generate a new wallet"
   fi
 done < <(find "$REPO_PATH" -type f -name '*.json' -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
