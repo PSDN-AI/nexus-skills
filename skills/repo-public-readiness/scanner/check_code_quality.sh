@@ -24,7 +24,8 @@ done < <(grep -rnEi '\b(TODO|FIXME|HACK|XXX)\b' "$REPO_PATH" \
   --include='*.java' --include='*.rs' --include='*.c' --include='*.cpp' \
   --include='*.h' --include='*.hpp' --include='*.css' --include='*.scss' \
   --include='*.vue' --include='*.svelte' \
-  2>/dev/null | grep -v 'check_code_quality\.sh' || true)
+  --exclude-dir='.git' --exclude-dir='node_modules' \
+  2>/dev/null | grep -v '/repo-public-readiness/scanner/' || true)
 
 # --- shellcheck (if available) ---
 if command -v shellcheck &>/dev/null; then

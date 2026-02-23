@@ -57,7 +57,7 @@ done < <(grep -rnEi "$keywords" "$REPO_PATH" \
   --include='*.ts' --include='*.go' --include='*.rb' --include='*.java' \
   --include='*.rs' \
   --exclude-dir='.git' --exclude-dir='.claude' \
-  2>/dev/null | grep -v 'check_compliance\.sh' || true)
+  2>/dev/null | grep -v '/repo-public-readiness/scanner/' || true)
 
 # --- Copyright headers (informational) ---
 # Sample up to 20 source files and check for copyright headers
