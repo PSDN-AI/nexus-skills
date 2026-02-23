@@ -45,7 +45,7 @@ for dim in "${DIMENSIONS[@]}"; do
   script="${SCRIPT_DIR}/${DIMENSION_SCRIPTS[$dim]}"
   if [[ -x "$script" ]]; then
     exit_code=0
-    bash "$script" "$REPO_PATH" > "$TMPDIR_SCAN/${dim}.txt" 2>"$TMPDIR_SCAN/${dim}.err" || exit_code=$?
+    "$BASH" "$script" "$REPO_PATH" > "$TMPDIR_SCAN/${dim}.txt" 2>"$TMPDIR_SCAN/${dim}.err" || exit_code=$?
     if [[ "$exit_code" -ne 0 ]]; then
       err_msg=$(head -1 "$TMPDIR_SCAN/${dim}.err" 2>/dev/null | head -c 120)
       echo "HIGH|${dim}_script_error|-|-|${DIMENSION_NAMES[$dim]} check failed (exit ${exit_code}): ${err_msg}|Investigate and fix ${DIMENSION_SCRIPTS[$dim]}" >> "$TMPDIR_SCAN/${dim}.txt"
