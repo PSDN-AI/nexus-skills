@@ -389,8 +389,10 @@ test_gitleaks_handling() {
   setup_fixture_dir
   create_file_ln "app.py" "x = 1"
   run_check "$CHECK"
-  if command -v gitleaks &>/dev/null; then
-    assert_not_contains "$OUTPUT" "SKIPPED|gitleaks|" "gitleaks runs when installed"
+  if command -v gitleaks &>/dev/null && command -v jq &>/dev/null; then
+    assert_not_contains "$OUTPUT" "SKIPPED|gitleaks" "gitleaks runs when installed"
+  elif command -v gitleaks &>/dev/null; then
+    assert_contains "$OUTPUT" "SKIPPED|gitleaks_jq" "gitleaks SKIPPED (jq missing)"
   else
     assert_contains "$OUTPUT" "SKIPPED|gitleaks" "gitleaks SKIPPED when not installed"
   fi
