@@ -9,19 +9,19 @@ A Skill is a **knowledge document first, executable second**.
 ## Three-Layer Consumption Model
 
 ```
-┌──────────────────────────────────────────────────┐
-│  Layer 3: CI/CD (GitHub Actions)                  │
-│  uses: PSDN-AI/nexus-skills/skills/...@v1        │
-│  → Automated pipeline integration via action.yml  │
-├──────────────────────────────────────────────────┤
-│  Layer 2: CLI (Bash Scripts)                      │
-│  ./scanner/run_scan.sh /path/to/repo              │
-│  → Direct execution by humans or agents           │
-├──────────────────────────────────────────────────┤
-│  Layer 1: AI Knowledge (SKILL.md)                 │
-│  AI reads instructions → understands task → acts  │
-│  → Any AI agent can consume this, vendor-neutral  │
-└──────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│  Layer 3: CI/CD (GitHub Actions)                   │
+│  uses: PSDN-AI/nexus-skills/skills/...@v0.0.1      │
+│  → Automated pipeline integration via action.yml   │
+├────────────────────────────────────────────────────┤
+│  Layer 2: CLI (Bash Scripts)                       │
+│  ./scanner/run_scan.sh /path/to/repo               │
+│  → Direct execution by humans or agents            │
+├────────────────────────────────────────────────────┤
+│  Layer 1: AI Knowledge (SKILL.md)                  │
+│  AI reads instructions → understands task → acts   │
+│  → Any AI agent can consume this, vendor-neutral   │
+└────────────────────────────────────────────────────┘
 ```
 
 Each layer wraps the one below it. SKILL.md is always the source of truth.
@@ -44,7 +44,7 @@ GitHub Action wrapper around Layer 2 scripts. Enables integration into CI/CD pip
 
 **Consumption**:
 ```yaml
-- uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v1
+- uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v0.0.1
   with:
     repo_path: "."
 ```
@@ -85,9 +85,9 @@ No package manager, no git submodules. Git + URL is the distribution mechanism.
 
 ## Versioning
 
-- **nexus-skills** uses git tags (`v1.0.0`, `v1.1.0`, etc.) on the repository.
+- **nexus-skills** uses git tags (`v0.0.1`, `v0.1.0`, `v1.0.0`, etc.) on the repository.
 - **Agents** pin Skill versions in `config.yaml` to ensure reproducibility.
-- **GitHub Actions** consumers reference a specific tag: `@v1`, `@v1.0.0`, or `@main`.
+- **GitHub Actions** consumers reference a specific tag: `@v0.0.1`, `@v0.1.0`, or `@v1.0.0`.
 
 ## Discovery
 

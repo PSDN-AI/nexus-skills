@@ -1,0 +1,26 @@
+# Example: Run Repo Public Readiness Scanner in GitHub Actions
+#
+# Copy this file to .github/workflows/readiness.yml in your repository.
+# The scanner runs on every push and PR, and fails the build if findings
+# are CRITICAL (NOT_READY).
+name: Repo Public Readiness
+on: [push, pull_request]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run readiness scan
+        uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v0.0.1
+        id: scan
+
+      - name: Show report
+        run: cat "${{ steps.scan.outputs.report }}"
+
+      - name: Fail on NOT_READY
+        if: steps.scan.outputs.status == 'NOT_READY'
+        run: |
+          echo "::error::Repository is NOT READY to go public. Fix CRITICAL findings first."
+          exit 1
