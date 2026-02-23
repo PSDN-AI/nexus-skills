@@ -113,12 +113,16 @@ fi
 
 # --- gitleaks (if available) ---
 if command -v gitleaks &>/dev/null; then
-  while IFS= read -r leak_line; do
-    f=$(echo "$leak_line" | jq -r '.File // "-"' 2>/dev/null || echo "-")
-    ln=$(echo "$leak_line" | jq -r '.StartLine // "-"' 2>/dev/null || echo "-")
-    desc=$(echo "$leak_line" | jq -r '.Description // "Secret detected by gitleaks"' 2>/dev/null || echo "Secret detected by gitleaks")
-    emit "CRITICAL" "gitleaks" "$f" "$ln" "$desc" "Remove secret and rotate credentials"
-  done < <(gitleaks detect --source "$REPO_PATH" --report-format json --no-banner 2>/dev/null | jq -c '.[]' 2>/dev/null || true)
+  if command -v jq &>/dev/null; then
+    while IFS= read -r leak_line; do
+      f=$(echo "$leak_line" | jq -r '.File // "-"')
+      ln=$(echo "$leak_line" | jq -r '.StartLine // "-"')
+      desc=$(echo "$leak_line" | jq -r '.Description // "Secret detected by gitleaks"')
+      emit "CRITICAL" "gitleaks" "$f" "$ln" "$desc" "Remove secret and rotate credentials"
+    done < <(gitleaks detect --source "$REPO_PATH" --report-format json --no-banner 2>/dev/null | jq -c '.[]' 2>/dev/null || true)
+  else
+    echo "SKIPPED|gitleaks_jq|-|-|jq not installed — cannot parse gitleaks JSON output|Install: brew install jq"
+  fi
 else
   echo "SKIPPED|gitleaks|-|-|gitleaks not installed — git history not scanned|Install: brew install gitleaks"
 fi

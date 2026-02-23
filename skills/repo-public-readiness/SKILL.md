@@ -15,6 +15,7 @@
 - `grep`, `find`, `file`, `wc`, `du`, `stat`
 
 **Optional** (enhanced checks when available):
+- `jq` — required to parse JSON output from tools below; without it those checks are SKIPPED
 - `gitleaks` — deep secret scanning including git history
 - `trufflehog` — additional secret detection patterns
 - `shellcheck` — bash script linting

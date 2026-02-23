@@ -27,6 +27,9 @@ outputs:
 
 dependencies:
   tools:
+    - name: jq
+      required: false
+      description: "JSON parser — needed to parse output from gitleaks, shellcheck, npm audit, trivy"
     - name: gitleaks
       required: false
       description: "Deep secret scanning including git history"
