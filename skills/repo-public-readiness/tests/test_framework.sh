@@ -110,7 +110,7 @@ run_check() {
   STDERR=$(cat "$tmpeerr")
   rm -f "$tmpout" "$tmpeerr"
   if [[ "$EXIT_CODE" -ne 0 ]]; then
-    _fail "run_check $(basename "$script")" "script exited with code $EXIT_CODE"
+    _fail "run_check $(basename "$script")" "script exited with code $EXIT_CODE; stderr: $STDERR"
   fi
 }
 
@@ -126,7 +126,9 @@ assert_contains() {
   if echo "$haystack" | grep -qF "$needle"; then
     _pass "$description"
   else
-    _fail "$description" "expected to find: $needle"
+    local snippet
+    snippet=$(echo "$haystack" | head -20)
+    _fail "$description" "expected to find: $needle | actual output (first 20 lines): $snippet"
   fi
 }
 

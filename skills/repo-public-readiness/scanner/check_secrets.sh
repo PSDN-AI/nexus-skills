@@ -42,18 +42,12 @@ while IFS= read -r -d '' f; do
 done < <(find "$REPO_PATH" -type f \( -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' -o -name 'id_rsa' -o -name 'id_ed25519' -o -name 'id_ecdsa' -o -name 'id_dsa' \) 2>/dev/null | tr '\n' '\0')
 
 # --- Private key content patterns ---
-# shellcheck disable=SC2094  # False positive: emit writes to stdout, not to $f
-while IFS= read -r -d '' f; do
-  # Skip binary files (accept text, PEM, scripts, JSON, etc.)
-  file "$f" | grep -qiE 'text|script|json|xml|PEM|key|cert|ASCII' || continue
-  line_num=0
-  while IFS= read -r line; do
-    line_num=$((line_num + 1))
-    if echo "$line" | grep -qE 'BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY'; then
-      emit "CRITICAL" "private_key_content" "$f" "$line_num" "Private key content found in file" "Remove the key and rotate credentials"
-    fi
-  done < "$f"
-done < <(find "$REPO_PATH" -type f -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
+# Use grep directly — no 'file' command needed since grep inherently skips binary
+while IFS= read -r result; do
+  f=$(echo "$result" | cut -d: -f1)
+  ln=$(echo "$result" | cut -d: -f2)
+  emit "CRITICAL" "private_key_content" "$f" "$ln" "Private key content found in file" "Remove the key and rotate credentials"
+done < <(grep -rnE 'BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY' "$REPO_PATH" --include='*' --exclude-dir='.git' --exclude-dir='node_modules' 2>/dev/null || true)
 
 # --- AWS credential patterns ---
 while IFS= read -r result; do
