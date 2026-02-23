@@ -1,0 +1,48 @@
+name: repo-public-readiness
+version: 1.0.0
+description: "Comprehensive scan to verify a repository is safe and ready to be made public"
+author: PSDN-AI
+license: MIT
+
+tags:
+  - security
+  - compliance
+  - documentation
+  - code-quality
+  - repo-hygiene
+  - pre-release
+
+complexity: intermediate
+
+inputs:
+  - name: repo_path
+    type: string
+    description: "Absolute or relative path to the repository to scan"
+    required: true
+
+outputs:
+  - name: report
+    type: file
+    description: "Markdown report with findings, severity levels, and overall verdict"
+
+dependencies:
+  tools:
+    - name: jq
+      required: false
+      description: "JSON parser — needed to parse output from gitleaks, shellcheck, npm audit, trivy"
+    - name: gitleaks
+      required: false
+      description: "Deep secret scanning including git history"
+    - name: trufflehog
+      required: false
+      description: "Additional secret detection patterns"
+    - name: shellcheck
+      required: false
+      description: "Bash script linting"
+    - name: trivy
+      required: false
+      description: "Dependency vulnerability scanning"
+  skills: []
+
+tested_with:
+  - claude-code
