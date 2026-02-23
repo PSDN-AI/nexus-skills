@@ -171,7 +171,7 @@ if [[ -f "$BIP39_WORDLIST" ]]; then
       lw=$(echo "${words[$i]}" | tr '[:upper:]' '[:lower:]' | tr -d '",;:')
       [[ -n "${_BIP39[$lw]+x}" ]] && hits=$((hits + 1))
     done
-    local threshold=$(( check_count * 80 / 100 ))
+    local threshold=$(( (check_count * 80 + 99) / 100 ))
     [[ "$hits" -ge "$threshold" ]] && return 0
     return 1
   }
