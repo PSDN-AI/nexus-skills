@@ -43,7 +43,7 @@ while IFS= read -r -d '' f; do
       emit "CRITICAL" "private_key_content" "$f" "$line_num" "Private key content found in file" "Remove the key and rotate credentials"
     fi
   done < "$f"
-done < <(find "$REPO_PATH" -type f -size -1M \( -name '*.md' -o -name '*.txt' -o -name '*.yml' -o -name '*.yaml' -o -name '*.json' -o -name '*.xml' -o -name '*.cfg' -o -name '*.conf' -o -name '*.sh' -o -name '*.py' -o -name '*.js' -o -name '*.ts' -o -name '*.rb' -o -name '*.go' -o -name '*.java' -o -name '*.rs' -o -name '*.toml' -o -name '*.ini' -o -name '*.env*' -o -name '*.pem' -o -name '*.key' \) 2>/dev/null | tr '\n' '\0')
+done < <(find "$REPO_PATH" -type f -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
 
 # --- AWS credential patterns ---
 while IFS= read -r result; do
