@@ -169,10 +169,12 @@ if [[ -f "$BIP39_WORDLIST" ]]; then
     local -a words
     read -ra words <<< "$1"
     local total=${#words[@]}
-    [[ "$total" -lt 12 ]] && return 1
-    # Only check first 12 or 24 words
+    # BIP-39 only allows 12, 15, 18, 21, or 24 words
+    case "$total" in
+      12|15|18|21|24) ;;
+      *) return 1 ;;
+    esac
     local check_count="$total"
-    [[ "$check_count" -gt 24 ]] && check_count=24
     local hits=0
     for ((i = 0; i < check_count; i++)); do
       local lw

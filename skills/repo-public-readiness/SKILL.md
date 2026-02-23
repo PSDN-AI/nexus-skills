@@ -196,7 +196,7 @@ The highest-priority dimension. Any CRITICAL here blocks public release.
 | Aspect | Detail |
 |--------|--------|
 | **Severity** | CRITICAL |
-| **Detection strategy** | Find sequences of 12 or 24 space-separated words where ≥ 80% match the BIP-39 English wordlist (2048 words) |
+| **Detection strategy** | Find sequences of exactly 12, 15, 18, 21, or 24 space-separated words (valid BIP-39 lengths) where ≥ 80% match the BIP-39 English wordlist (2048 words) |
 | **Context clues** | Lines containing `mnemonic`, `seed`, `recovery`, `phrase`, `12 words`, `24 words` near a word sequence |
 | **Wordlist** | Embedded at `scanner/data/bip39_english.txt` (sourced from [BIP-39 spec](https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt)) |
 | **Exclude** | Known test mnemonics (e.g., Hardhat's default `test test test...junk`) |
