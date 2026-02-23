@@ -44,8 +44,8 @@ done < <(find "$REPO_PATH" -type f \( -name '*.pem' -o -name '*.key' -o -name '*
 # --- Private key content patterns ---
 # shellcheck disable=SC2094  # False positive: emit writes to stdout, not to $f
 while IFS= read -r -d '' f; do
-  # Skip binary files
-  file "$f" | grep -q text || continue
+  # Skip binary files (accept text, PEM, scripts, JSON, etc.)
+  file "$f" | grep -qiE 'text|script|json|xml|PEM|key|cert|ASCII' || continue
   line_num=0
   while IFS= read -r line; do
     line_num=$((line_num + 1))
@@ -212,7 +212,7 @@ if [[ -f "$BIP39_WORDLIST" ]]; then
   # shellcheck disable=SC2094  # False positive: emit writes to stdout, not to $f
   for ext in env env.* js ts json yaml yml toml; do
     while IFS= read -r -d '' f; do
-      file "$f" | grep -qE '(text|JSON)' || continue
+      file "$f" | grep -qiE 'text|script|json|xml|PEM|key|cert|ASCII' || continue
       line_num=0
       while IFS= read -r line; do
         line_num=$((line_num + 1))
@@ -244,14 +244,16 @@ done < <(grep -rnEi '(solana|keypair|phantom|secret)\s*[:=]\s*["\x27]?[1-9A-HJ-N
 # Solana keypair JSON format: array of 64 integers (may span multiple lines)
 while IFS= read -r -d '' f; do
   [[ -f "$f" ]] || continue
-  # Collapse file to single line, strip whitespace, then match 64-integer array
+  # Collapse file to single line, strip whitespace, then validate as 64-byte array
   compact=$(tr -d '[:space:]' < "$f" 2>/dev/null) || continue
-  if [[ "$compact" =~ ^\[([0-9]{1,3},){63}[0-9]{1,3}\]$ ]]; then
-    # Validate every element is 0-255 (byte range)
-    inner="${compact#\[}"
-    inner="${inner%\]}"
+  # Quick structural check: starts with [, ends with ], contains only digits and commas
+  [[ "$compact" =~ ^\[[0-9,]+\]$ ]] || continue
+  inner="${compact#\[}"
+  inner="${inner%\]}"
+  IFS=',' read -ra nums <<< "$inner"
+  # Must be exactly 64 elements, each 0-255
+  if [[ "${#nums[@]}" -eq 64 ]]; then
     valid=true
-    IFS=',' read -ra nums <<< "$inner"
     for n in "${nums[@]}"; do
       [[ "$n" -le 255 ]] 2>/dev/null || { valid=false; break; }
     done
