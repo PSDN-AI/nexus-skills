@@ -3,6 +3,14 @@
 # Output format: SEVERITY|CHECK|FILE|LINE|DESCRIPTION|REMEDIATION
 set -euo pipefail
 
+# Require bash 4+ (associative arrays used for BIP-39 lookup)
+if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
+  echo "Error: bash 4.0+ required (found ${BASH_VERSION})." >&2
+  echo "  macOS: brew install bash" >&2
+  echo "  Linux: sudo apt-get install bash" >&2
+  exit 1
+fi
+
 REPO_PATH="${1:?Usage: check_secrets.sh <repo_path>}"
 FINDINGS=0
 
