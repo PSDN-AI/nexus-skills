@@ -27,6 +27,15 @@ Every Skill can be consumed at three layers:
 └────────────────────────────────────────────────────┘
 ```
 
+## Prerequisites
+
+- **bash 4.0+** — required for CLI and CI layers (the scanner uses associative arrays)
+  - macOS ships bash 3.2; upgrade with `brew install bash`
+  - Linux (Ubuntu, Debian, etc.) ships bash 5.x — no action needed
+  - CI (GitHub Actions `ubuntu-latest`) — no action needed
+- `grep`, `find`, `file`, `wc` — standard POSIX tools (pre-installed everywhere)
+- Optional: `gitleaks`, `shellcheck`, `trivy`, `jq` — enhanced checks, gracefully skipped if missing
+
 ## Quick Start
 
 ### Layer 2: CLI
