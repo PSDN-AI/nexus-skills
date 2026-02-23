@@ -187,8 +187,8 @@ if [[ -f "$BIP39_WORDLIST" ]]; then
     f=$(echo "$result" | cut -d: -f1)
     ln=$(echo "$result" | cut -d: -f2)
     line_content=$(echo "$result" | cut -d: -f3-)
-    # Extract word sequence (strip quotes, punctuation around words)
-    word_seq=$(echo "$line_content" | grep -oE '[a-z]{3,}( [a-z]{3,}){11,23}' || true)
+    # Extract word sequence (lowercase first, then match)
+    word_seq=$(echo "$line_content" | tr '[:upper:]' '[:lower:]' | grep -oE '[a-z]{3,}( [a-z]{3,}){11,23}' || true)
     [[ -z "$word_seq" ]] && continue
     # Skip known test mnemonics
     [[ "$word_seq" == "$HARDHAT_TEST_MNEMONIC" ]] && continue
