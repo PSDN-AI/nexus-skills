@@ -14,7 +14,7 @@ Every Skill can be consumed at three layers:
 ```
 ┌─────────────────────────────────────────────────────┐
 │  Layer 3: CI/CD (GitHub Actions)                    │
-│  uses: PSDN-AI/nexus-skills/skills/...@v1           │
+│  uses: PSDN-AI/nexus-skills/skills/...@v0.0.1        │
 │  → Automated pipeline integration via action.yml    │
 ├─────────────────────────────────────────────────────┤
 │  Layer 2: CLI (Bash Scripts)                        │
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v1
+      - uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v0.0.1
         id: scan
       - run: echo "Status is ${{ steps.scan.outputs.status }}"
 ```
