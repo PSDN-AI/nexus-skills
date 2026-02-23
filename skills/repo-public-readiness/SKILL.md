@@ -379,15 +379,28 @@ The highest-priority dimension. Any CRITICAL here blocks public release.
 
 ---
 
-### File Types Scanned
+### File Types Scanned Per Check
 
-The following file extensions are included in regex-based checks (secrets, hardcoded IPs, generic patterns):
+Different checks scan different file sets. Use this table to understand the exact scope of each check.
 
-**Source code**: `.sh`, `.py`, `.js`, `.ts`, `.go`, `.rb`, `.java`, `.rs`
+| Check | File scope |
+|-------|-----------|
+| **1.1 .env files** | `find` by filename: `.env`, `.env.*` (excluding `.env.example`, `.env.sample`, `.env.template`) |
+| **1.2 Private key files** | `find` by extension/name: `.pem`, `.key`, `.p12`, `.pfx`, `id_rsa`, `id_ed25519`, `id_ecdsa`, `id_dsa` |
+| **1.3 Private key content** | All files < 1MB (binary filtered by `file \| grep text`), excluding `.git/`, `node_modules/` |
+| **1.4 AWS credentials** | Source + config: `.sh`, `.py`, `.js`, `.ts`, `.go`, `.rb`, `.java`, `.rs`, `.yml`, `.yaml`, `.json`, `.toml`, `.xml`, `.cfg`, `.conf`, `.ini`, `.tf`, `.tfvars`, `.env`, `.env.*` |
+| **1.5 Generic secrets** | Same as 1.4 |
+| **1.6 Hardcoded IPs** | Same as 1.4 |
+| **1.7 PII emails** | Same as 1.4 **plus** `.md`, `.txt`, `.html`, `.xml` |
+| **1.8 PII phones** | Same as 1.4 **plus** `.md`, `.txt`, `.html` |
+| **1.9 Actions secrets** | `.github/workflows/*.yml`, `*.yaml` only |
+| **1.10 Actions injection** | `.github/workflows/*.yml`, `*.yaml` only |
+| **2.1 TODO comments** | `.sh`, `.py`, `.js`, `.ts`, `.jsx`, `.tsx`, `.go`, `.rb`, `.java`, `.rs`, `.c`, `.cpp`, `.h`, `.hpp`, `.css`, `.scss`, `.vue`, `.svelte` |
+| **2.2 shellcheck** | `*.sh` only |
+| **5.2 Internal references** | `.md`, `.txt`, `.yml`, `.yaml`, `.json`, `.toml`, `.cfg`, `.conf`, `.ini`, `.sh`, `.py`, `.js`, `.ts`, `.go`, `.rb`, `.java`, `.rs` |
+| **5.3 Copyright headers** | `.py`, `.js`, `.ts`, `.go`, `.java`, `.rb`, `.rs`, `.c`, `.cpp` |
 
-**Config**: `.yml`, `.yaml`, `.json`, `.toml`, `.xml`, `.cfg`, `.conf`, `.ini`, `.tf`, `.tfvars`
-
-**Other**: `.env`, `.env.*`
+Checks not listed above use `find` by filename/size/directory (no extension filtering).
 
 **Always excluded directories**: `.git`, `node_modules`, `.claude`
 
