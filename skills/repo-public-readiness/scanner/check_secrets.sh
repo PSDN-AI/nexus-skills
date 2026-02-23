@@ -241,10 +241,12 @@ while IFS= read -r -d '' f; do
   # Collapse file to single line, strip whitespace, then validate as 64-byte array
   compact=$(tr -d '[:space:]' < "$f" 2>/dev/null) || continue
   # Quick structural check: starts with [, ends with ], contains only digits and commas
-  [[ "$compact" =~ ^\[[0-9,]+\]$ ]] || continue
+  echo "[debug-solana] file=$f compact_len=${#compact} first40=${compact:0:40}" >&2
+  [[ "$compact" =~ ^\[[0-9,]+\]$ ]] || { echo "[debug-solana] regex failed" >&2; continue; }
   inner="${compact#\[}"
   inner="${inner%\]}"
   IFS=',' read -ra nums <<< "$inner"
+  echo "[debug-solana] num_elements=${#nums[@]}" >&2
   # Must be exactly 64 elements, each 0-255
   if [[ "${#nums[@]}" -eq 64 ]]; then
     valid=true
@@ -266,6 +268,8 @@ done < <(find "$REPO_PATH" -type f \( -name '*.keystore' -o -name '*.wallet' -o 
 # Ethereum keystore v3 content detection (JSON with crypto+ciphertext+kdf)
 while IFS= read -r -d '' f; do
   [[ -f "$f" ]] || continue
+  echo "[debug-keystore] checking $f" >&2
+  echo "[debug-keystore] crypto=$(grep -c '"crypto"' "$f" 2>&1) ciphertext=$(grep -c '"ciphertext"' "$f" 2>&1) kdf=$(grep -c '"kdf"' "$f" 2>&1)" >&2
   if grep -q '"crypto"' "$f" 2>/dev/null && grep -q '"ciphertext"' "$f" 2>/dev/null && grep -q '"kdf"' "$f" 2>/dev/null; then
     emit "HIGH" "web3_keystore_content" "$f" "-" "Ethereum keystore v3 file detected (contains crypto+ciphertext+kdf)" "Remove wallet file — consider rotating if password was weak"
   fi
