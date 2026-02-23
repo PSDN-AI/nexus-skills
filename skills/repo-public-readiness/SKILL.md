@@ -181,6 +181,56 @@ The highest-priority dimension. Any CRITICAL here blocks public release.
 | **Requires** | `gitleaks` + `jq` |
 | **Fallback** | SKIPPED if either tool is missing — note that built-in regex checks only scan HEAD, not history |
 
+#### 1.12 Web3 — Hex Private Keys
+
+| Aspect | Detail |
+|--------|--------|
+| **Severity** | CRITICAL |
+| **Pattern** | `(private[_-]?key|secret[_-]?key|signer|wallet|account)\s*[:=]\s*["']?0x[0-9a-fA-F]{64}` |
+| **Why** | Bare 256-bit hex strings used as wallet private keys across EVM chains (Ethereum, Polygon, BSC, Arbitrum, etc.) |
+| **Exclude** | Known zero/test key: `0x0000...0000` (64 zeroes) |
+| **Remediation** | Remove key and transfer funds to a new wallet immediately |
+
+#### 1.13 Web3 — BIP-39 Mnemonic / Seed Phrases
+
+| Aspect | Detail |
+|--------|--------|
+| **Severity** | CRITICAL |
+| **Detection strategy** | Find sequences of exactly 12, 15, 18, 21, or 24 space-separated words (valid BIP-39 lengths) where ≥ 80% match the BIP-39 English wordlist (2048 words) |
+| **Context clues** | Lines containing `mnemonic`, `seed`, `recovery`, `phrase`, `12 words`, `24 words` near a word sequence |
+| **Wordlist** | Embedded at `scanner/data/bip39_english.txt` (sourced from [BIP-39 spec](https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt)) |
+| **Exclude** | Known test mnemonics (e.g., Hardhat's default `test test test...junk`) |
+| **Performance** | Two-pass: scan lines with context clues first, then validate bare sequences in config/env files |
+| **Remediation** | Remove mnemonic and transfer funds to a new wallet with a fresh seed |
+
+#### 1.14 Web3 — Solana Private Keys
+
+| Aspect | Detail |
+|--------|--------|
+| **Severity** | CRITICAL |
+| **Pattern (base58)** | Base58 string of 87-88 characters (`[1-9A-HJ-NP-Za-km-z]{87,88}`) near keywords: `solana`, `keypair`, `phantom`, `secret` |
+| **Pattern (JSON)** | JSON files containing an array of exactly 64 integers (Solana keypair byte-array format) |
+| **Exclude** | Public keys (32-byte / 43-44 chars base58) — only flag 64-byte keypairs |
+| **Remediation** | Remove keypair and generate a new wallet |
+
+#### 1.15 Web3 — Keystore / Wallet Files
+
+| Aspect | Detail |
+|--------|--------|
+| **Severity** | HIGH |
+| **File patterns** | `*.keystore`, `*.wallet`, `UTC--*` (Ethereum keystore naming convention) |
+| **Content pattern** | JSON containing `"crypto"` + `"ciphertext"` + `"kdf"` (Ethereum keystore v3 format) |
+| **Remediation** | Remove wallet file — consider rotating if password was weak |
+
+#### 1.16 Web3 — Hardhat / Foundry Config with Keys
+
+| Aspect | Detail |
+|--------|--------|
+| **Severity** | CRITICAL |
+| **Files** | `hardhat.config.js`, `hardhat.config.ts`, `foundry.toml` |
+| **Pattern** | `0x[0-9a-fA-F]{64}` anywhere in the config file, or `accounts:\s*\["0x[0-9a-fA-F]{64}"` |
+| **Remediation** | Use environment variables or a secrets manager — never commit keys in config |
+
 ---
 
 ### Dimension 2: Code Quality
@@ -395,6 +445,11 @@ Different checks scan different file sets. Use this table to understand the exac
 | **1.8 PII phones** | Same as 1.4 **plus** `.md`, `.txt`, `.html` |
 | **1.9 Actions secrets** | `.github/workflows/*.yml`, `*.yaml` only |
 | **1.10 Actions injection** | `.github/workflows/*.yml`, `*.yaml` only |
+| **1.12 Web3 hex keys** | Same as 1.4 (keyword proximity required) |
+| **1.13 BIP-39 mnemonics** | Same as 1.4 (context clue pass); also `.env`, `.env.*`, `.js`, `.ts`, `.json`, `.yaml`, `.yml`, `.toml` (bare sequence pass) |
+| **1.14 Solana keypairs** | Same as 1.4 (base58 keyword pass); all `*.json` < 1MB (byte-array pass) |
+| **1.15 Keystore/wallet files** | `find` by name: `*.keystore`, `*.wallet`, `UTC--*`; content scan on `*.json` < 1MB |
+| **1.16 Hardhat/Foundry config** | `hardhat.config.js`, `hardhat.config.ts`, `foundry.toml` (exact files); accounts array via 1.4 includes |
 | **2.1 TODO comments** | `.sh`, `.py`, `.js`, `.ts`, `.jsx`, `.tsx`, `.go`, `.rb`, `.java`, `.rs`, `.c`, `.cpp`, `.h`, `.hpp`, `.css`, `.scss`, `.vue`, `.svelte` |
 | **2.2 shellcheck** | `*.sh` only |
 | **5.2 Internal references** | `.md`, `.txt`, `.yml`, `.yaml`, `.json`, `.toml`, `.cfg`, `.conf`, `.ini`, `.sh`, `.py`, `.js`, `.ts`, `.go`, `.rb`, `.java`, `.rs` |

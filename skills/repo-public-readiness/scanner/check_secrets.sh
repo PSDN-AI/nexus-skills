@@ -3,10 +3,20 @@
 # Output format: SEVERITY|CHECK|FILE|LINE|DESCRIPTION|REMEDIATION
 set -euo pipefail
 
+# Require bash 4+ (associative arrays used for BIP-39 lookup)
+if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
+  echo "Error: bash 4.0+ required (found ${BASH_VERSION})." >&2
+  echo "  macOS: brew install bash" >&2
+  echo "  Linux: sudo apt-get install bash" >&2
+  exit 1
+fi
+
 REPO_PATH="${1:?Usage: check_secrets.sh <repo_path>}"
 FINDINGS=0
 
 # Common source file includes for grep (brace expansion doesn't work in --include)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 SOURCE_INCLUDES=(
   --include='*.sh' --include='*.py' --include='*.js' --include='*.ts'
   --include='*.go' --include='*.rb' --include='*.java' --include='*.rs'
@@ -111,6 +121,159 @@ if [[ -d "$REPO_PATH/.github/workflows" ]]; then
     emit "HIGH" "actions_script_injection" "$f" "$ln" "Unsafe use of github.event context — potential script injection" "Use an intermediate environment variable instead of inline expression"
   done < <(grep -rnE '\$\{\{\s*github\.event\.(issue|pull_request|comment)\.(title|body|head\.ref)' "$REPO_PATH/.github/workflows/" --include='*.yml' --include='*.yaml' 2>/dev/null || true)
 fi
+
+# ============================================================
+# Web3 / Blockchain Secrets
+# ============================================================
+
+# --- Web3: Hex Private Keys (0x + 64 hex chars near crypto keywords) ---
+while IFS= read -r result; do
+  f=$(echo "$result" | cut -d: -f1)
+  ln=$(echo "$result" | cut -d: -f2)
+  matched=$(echo "$result" | grep -oE '0x[0-9a-fA-F]{64}')
+  # Exclude known zero/test keys
+  case "$matched" in
+    0x0000000000000000000000000000000000000000000000000000000000000000) continue ;;
+  esac
+  emit "CRITICAL" "web3_hex_private_key" "$f" "$ln" "Potential Web3 private key found (0x + 64 hex chars)" "Remove key and transfer funds to a new wallet immediately"
+done < <(grep -rnEi '(private[_-]?key|secret[_-]?key|signer|wallet|account)\s*[:=]\s*["\x27]?0x[0-9a-fA-F]{64}' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
+
+# --- Web3: Hardhat / Foundry config with embedded keys ---
+for cfg_file in "hardhat.config.js" "hardhat.config.ts" "foundry.toml"; do
+  cfg_path="$REPO_PATH/$cfg_file"
+  [[ -f "$cfg_path" ]] || continue
+  while IFS= read -r result; do
+    ln=$(echo "$result" | cut -d: -f1)
+    emit "CRITICAL" "web3_config_private_key" "$cfg_path" "$ln" "Private key embedded in $cfg_file" "Use environment variables or a secrets manager — never commit keys in config"
+  done < <(grep -nE '0x[0-9a-fA-F]{64}' "$cfg_path" 2>/dev/null || true)
+done
+
+# Also check for accounts arrays with hex keys in any JS/TS config
+while IFS= read -r result; do
+  f=$(echo "$result" | cut -d: -f1)
+  ln=$(echo "$result" | cut -d: -f2)
+  emit "CRITICAL" "web3_accounts_array_key" "$f" "$ln" "Private key in accounts array (Hardhat/Web3 config)" "Use environment variables: accounts: [process.env.PRIVATE_KEY]"
+done < <(grep -rnE 'accounts\s*:\s*\[\s*["\x27]0x[0-9a-fA-F]{64}' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
+
+# --- Web3: BIP-39 Mnemonic / Seed Phrases ---
+BIP39_WORDLIST="$SCRIPT_DIR/data/bip39_english.txt"
+if [[ -f "$BIP39_WORDLIST" ]]; then
+  # Load wordlist into associative array for O(1) lookup (requires bash 4+)
+  declare -A _BIP39=()
+  while IFS= read -r w; do
+    _BIP39["$w"]=1
+  done < "$BIP39_WORDLIST"
+
+  # Check function: given a string of words, return 0 if >=80% match BIP-39
+  _bip39_check() {
+    local -a words
+    read -ra words <<< "$1"
+    local total=${#words[@]}
+    # BIP-39 only allows 12, 15, 18, 21, or 24 words
+    case "$total" in
+      12|15|18|21|24) ;;
+      *) return 1 ;;
+    esac
+    local check_count="$total"
+    local hits=0
+    for ((i = 0; i < check_count; i++)); do
+      local lw
+      lw=$(echo "${words[$i]}" | tr '[:upper:]' '[:lower:]' | tr -d '",;:')
+      [[ -n "${_BIP39[$lw]+x}" ]] && hits=$((hits + 1))
+    done
+    local threshold=$(( (check_count * 80 + 99) / 100 ))
+    [[ "$hits" -ge "$threshold" ]] && return 0
+    return 1
+  }
+
+  # Hardhat default test mnemonic
+  HARDHAT_TEST_MNEMONIC="test test test test test test test test test test test junk"
+
+  # Track already-reported file:line pairs to avoid duplicates across passes
+  declare -A _BIP39_REPORTED=()
+
+  # Two-pass approach: scan lines with context clues, then validate
+  while IFS= read -r result; do
+    f=$(echo "$result" | cut -d: -f1)
+    ln=$(echo "$result" | cut -d: -f2)
+    line_content=$(echo "$result" | cut -d: -f3-)
+    # Extract word sequence (lowercase first, then match)
+    word_seq=$(echo "$line_content" | tr '[:upper:]' '[:lower:]' | grep -oE '[a-z]{3,}( [a-z]{3,}){11,23}' || true)
+    [[ -z "$word_seq" ]] && continue
+    # Skip known test mnemonics
+    [[ "$word_seq" == "$HARDHAT_TEST_MNEMONIC" ]] && continue
+    if _bip39_check "$word_seq"; then
+      _BIP39_REPORTED["$f:$ln"]=1
+      emit "CRITICAL" "web3_bip39_mnemonic" "$f" "$ln" "Potential BIP-39 mnemonic seed phrase detected" "Remove mnemonic and transfer funds to a new wallet with a fresh seed"
+    fi
+  done < <(grep -rnEi '(mnemonic|seed|recovery|phrase|12.?words?|24.?words?|HD_WALLET|SEED_PHRASE)' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
+
+  # Also scan for bare 12/24-word sequences in common config/env files
+  # shellcheck disable=SC2094  # False positive: emit writes to stdout, not to $f
+  for ext in env env.* js ts json yaml yml toml; do
+    while IFS= read -r -d '' f; do
+      file "$f" | grep -qE '(text|JSON)' || continue
+      line_num=0
+      while IFS= read -r line; do
+        line_num=$((line_num + 1))
+        # Skip if already reported in context-clue pass
+        [[ -n "${_BIP39_REPORTED["$f:$line_num"]+x}" ]] && continue
+        word_seq=$(echo "$line" | tr '[:upper:]' '[:lower:]' | grep -oE '[a-z]{3,}( [a-z]{3,}){11,23}' || true)
+        [[ -z "$word_seq" ]] && continue
+        [[ "$word_seq" == "$HARDHAT_TEST_MNEMONIC" ]] && continue
+        if _bip39_check "$word_seq"; then
+          emit "CRITICAL" "web3_bip39_mnemonic" "$f" "$line_num" "Potential BIP-39 mnemonic seed phrase detected" "Remove mnemonic and transfer funds to a new wallet with a fresh seed"
+        fi
+      done < "$f"
+    done < <(find "$REPO_PATH" -type f -name "*.$ext" -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
+  done
+
+  unset _BIP39_REPORTED
+  unset _BIP39
+else
+  echo "SKIPPED|web3_bip39|-|-|BIP-39 wordlist not found at $BIP39_WORDLIST|Ensure scanner data files are intact"
+fi
+
+# --- Web3: Solana Private Keys (base58, 87-88 chars near Solana keywords) ---
+while IFS= read -r result; do
+  f=$(echo "$result" | cut -d: -f1)
+  ln=$(echo "$result" | cut -d: -f2)
+  emit "CRITICAL" "web3_solana_keypair" "$f" "$ln" "Potential Solana private keypair found (base58, 87-88 chars)" "Remove keypair and generate a new wallet"
+done < <(grep -rnEi '(solana|keypair|phantom|secret)\s*[:=]\s*["\x27]?[1-9A-HJ-NP-Za-km-z]{87,88}["\x27]?' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
+
+# Solana keypair JSON format: array of 64 integers (may span multiple lines)
+while IFS= read -r -d '' f; do
+  [[ -f "$f" ]] || continue
+  # Collapse file to single line, strip whitespace, then match 64-integer array
+  compact=$(tr -d '[:space:]' < "$f" 2>/dev/null) || continue
+  if [[ "$compact" =~ ^\[([0-9]{1,3},){63}[0-9]{1,3}\]$ ]]; then
+    # Validate every element is 0-255 (byte range)
+    inner="${compact#\[}"
+    inner="${inner%\]}"
+    valid=true
+    IFS=',' read -ra nums <<< "$inner"
+    for n in "${nums[@]}"; do
+      [[ "$n" -le 255 ]] 2>/dev/null || { valid=false; break; }
+    done
+    if [[ "$valid" == "true" ]]; then
+      emit "CRITICAL" "web3_solana_keypair_json" "$f" "-" "Potential Solana keypair JSON file (64-byte array)" "Remove keypair file and generate a new wallet"
+    fi
+  fi
+done < <(find "$REPO_PATH" -type f -name '*.json' -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
+
+# --- Web3: Keystore / Wallet Files ---
+# File extension/name based detection
+while IFS= read -r -d '' f; do
+  emit "HIGH" "web3_wallet_file" "$f" "-" "Wallet/keystore file detected" "Remove wallet file — consider rotating if password was weak"
+done < <(find "$REPO_PATH" -type f \( -name '*.keystore' -o -name '*.wallet' -o -name 'UTC--*' \) -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
+
+# Ethereum keystore v3 content detection (JSON with crypto+ciphertext+kdf)
+while IFS= read -r -d '' f; do
+  [[ -f "$f" ]] || continue
+  if grep -q '"crypto"' "$f" 2>/dev/null && grep -q '"ciphertext"' "$f" 2>/dev/null && grep -q '"kdf"' "$f" 2>/dev/null; then
+    emit "HIGH" "web3_keystore_content" "$f" "-" "Ethereum keystore v3 file detected (contains crypto+ciphertext+kdf)" "Remove wallet file — consider rotating if password was weak"
+  fi
+done < <(find "$REPO_PATH" -type f -name '*.json' -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
 
 # --- gitleaks (if available) ---
 if command -v gitleaks &>/dev/null; then
