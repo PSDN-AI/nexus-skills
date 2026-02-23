@@ -244,7 +244,7 @@ The highest-priority dimension. Any CRITICAL here blocks public release.
 |--------|--------|
 | **Severity** | HIGH if missing, HIGH if too thin |
 | **Check names** | `README.md`, `README.rst`, `README.txt`, `README` |
-| **Substance threshold** | Must have ≥ 500 characters **AND** ≥ 50 lines |
+| **Substance threshold** | Must have ≥ 500 characters **OR** ≥ 50 lines (flagged only when both are below threshold) |
 | **Remediation** | Create/expand with project overview, quick start, usage examples |
 
 #### 3.2 LICENSE
