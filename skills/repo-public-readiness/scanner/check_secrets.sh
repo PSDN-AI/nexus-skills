@@ -150,7 +150,7 @@ done < <(grep -rnE 'accounts\s*:\s*\[\s*["\x27]0x[0-9a-fA-F]{64}' "$REPO_PATH" "
 # --- Web3: BIP-39 Mnemonic / Seed Phrases ---
 BIP39_WORDLIST="$SCRIPT_DIR/data/bip39_english.txt"
 if [[ -f "$BIP39_WORDLIST" ]]; then
-  # Load wordlist into associative array for O(1) lookup
+  # Load wordlist into associative array for O(1) lookup (requires bash 4+)
   declare -A _BIP39=()
   while IFS= read -r w; do
     _BIP39["$w"]=1
@@ -219,7 +219,6 @@ if [[ -f "$BIP39_WORDLIST" ]]; then
   done
 
   unset _BIP39_REPORTED
-
   unset _BIP39
 else
   echo "SKIPPED|web3_bip39|-|-|BIP-39 wordlist not found at $BIP39_WORDLIST|Ensure scanner data files are intact"

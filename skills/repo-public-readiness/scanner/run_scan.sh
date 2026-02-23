@@ -4,6 +4,14 @@
 # Output: Markdown report to stdout
 set -euo pipefail
 
+# Require bash 4+ (associative arrays, modern features)
+if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
+  echo "Error: bash 4.0+ required (found ${BASH_VERSION})." >&2
+  echo "  macOS: brew install bash" >&2
+  echo "  Linux: sudo apt-get install bash" >&2
+  exit 1
+fi
+
 REPO_PATH="${1:?Usage: run_scan.sh <repo_path>}"
 REPO_PATH=$(cd "$REPO_PATH" && pwd)  # Resolve to absolute path
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
