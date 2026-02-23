@@ -3,6 +3,7 @@
 # Copy this file to .github/workflows/readiness.yml in your repository.
 # The scanner runs on every push and PR, and fails the build if findings
 # are CRITICAL (NOT_READY).
+# For stable pipelines, pin to a release tag (for example @v0.0.1).
 
 name: Repo Public Readiness
 on: [push, pull_request]
@@ -14,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run readiness scan
-        uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v0.0.1
+        uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@main
         id: scan
 
       - name: Show report

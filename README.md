@@ -12,19 +12,19 @@ A curated marketplace of reusable AI Agent Skills for Infrastructure, DevOps, an
 Every Skill can be consumed at three layers:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  Layer 3: CI/CD (GitHub Actions)                    │
-│  uses: PSDN-AI/nexus-skills/skills/...@v0.0.1        │
-│  → Automated pipeline integration via action.yml    │
-├─────────────────────────────────────────────────────┤
-│  Layer 2: CLI (Bash Scripts)                        │
-│  ./scanner/run_scan.sh /path/to/repo                │
-│  → Direct execution by humans or agents             │
-├─────────────────────────────────────────────────────┤
-│  Layer 1: AI Knowledge (SKILL.md)                   │
-│  AI reads instructions → understands task → acts    │
-│  → Any AI agent can consume this, vendor-neutral    │
-└─────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│  Layer 3: CI/CD (GitHub Actions)                   │
+│  uses: PSDN-AI/nexus-skills/skills/...@main        │
+│  → Automated pipeline integration via action.yml   │
+├────────────────────────────────────────────────────┤
+│  Layer 2: CLI (Bash Scripts)                       │
+│  ./scanner/run_scan.sh /path/to/repo               │
+│  → Direct execution by humans or agents            │
+├────────────────────────────────────────────────────┤
+│  Layer 1: AI Knowledge (SKILL.md)                  │
+│  AI reads instructions → understands task → acts   │
+│  → Any AI agent can consume this, vendor-neutral   │
+└────────────────────────────────────────────────────┘
 ```
 
 ## Quick Start
@@ -53,7 +53,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v0.0.1
+      # Pin to a release tag (for example @v0.0.1) for reproducibility.
+      - uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@main
         id: scan
       - run: echo "Status is ${{ steps.scan.outputs.status }}"
 ```
