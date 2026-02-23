@@ -11,7 +11,7 @@ A Skill is a **knowledge document first, executable second**.
 ```
 ┌────────────────────────────────────────────────────┐
 │  Layer 3: CI/CD (GitHub Actions)                   │
-│  uses: PSDN-AI/nexus-skills/skills/...@main        │
+│  uses: PSDN-AI/nexus-skills/skills/...@v0.0.1      │
 │  → Automated pipeline integration via action.yml   │
 ├────────────────────────────────────────────────────┤
 │  Layer 2: CLI (Bash Scripts)                       │
@@ -44,8 +44,7 @@ GitHub Action wrapper around Layer 2 scripts. Enables integration into CI/CD pip
 
 **Consumption**:
 ```yaml
-# Pin to a release tag (for example @v0.0.1) for reproducibility.
-- uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@main
+- uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v0.0.1
   with:
     repo_path: "."
 ```
@@ -88,7 +87,7 @@ No package manager, no git submodules. Git + URL is the distribution mechanism.
 
 - **nexus-skills** uses git tags (`v0.0.1`, `v0.1.0`, `v1.0.0`, etc.) on the repository.
 - **Agents** pin Skill versions in `config.yaml` to ensure reproducibility.
-- **GitHub Actions** consumers can start with `@main`, then pin to a release tag (`@v0.0.1`, `@v1.0.0`) for reproducibility.
+- **GitHub Actions** consumers reference a specific tag: `@v0.0.1`, `@v0.1.0`, or `@v1.0.0`.
 
 ## Discovery
 
