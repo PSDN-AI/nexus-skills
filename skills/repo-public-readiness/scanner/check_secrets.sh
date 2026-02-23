@@ -32,6 +32,7 @@ while IFS= read -r -d '' f; do
 done < <(find "$REPO_PATH" -type f \( -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' -o -name 'id_rsa' -o -name 'id_ed25519' -o -name 'id_ecdsa' -o -name 'id_dsa' \) 2>/dev/null | tr '\n' '\0')
 
 # --- Private key content patterns ---
+# shellcheck disable=SC2094  # False positive: emit writes to stdout, not to $f
 while IFS= read -r -d '' f; do
   # Skip binary files
   file "$f" | grep -q text || continue

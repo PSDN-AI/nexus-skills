@@ -7,20 +7,64 @@
 
 A curated marketplace of reusable AI Agent Skills for Infrastructure, DevOps, and Automation. Each Skill is a standardized, battle-tested knowledge module that any AI Agent can use.
 
+## How Skills Work
+
+Every Skill can be consumed at three layers:
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Layer 3: CI/CD (GitHub Actions)                    │
+│  uses: PSDN-AI/nexus-skills/skills/...@v1           │
+│  → Automated pipeline integration via action.yml    │
+├─────────────────────────────────────────────────────┤
+│  Layer 2: CLI (Bash Scripts)                        │
+│  ./scanner/run_scan.sh /path/to/repo                │
+│  → Direct execution by humans or agents             │
+├─────────────────────────────────────────────────────┤
+│  Layer 1: AI Knowledge (SKILL.md)                   │
+│  AI reads instructions → understands task → acts    │
+│  → Any AI agent can consume this, vendor-neutral    │
+└─────────────────────────────────────────────────────┘
+```
+
 ## Quick Start
 
-Run the Repo Public Readiness Scanner on any repository:
+### Layer 2: CLI
 
 ```bash
 git clone https://github.com/PSDN-AI/nexus-skills.git
-cd nexus-skills
-./skills/repo-public-readiness/scanner/run_scan.sh /path/to/your/repo
+./nexus-skills/skills/repo-public-readiness/scanner/run_scan.sh /path/to/your/repo
 ```
 
-Pipe to a file for a persistent report:
+Save the report:
 
 ```bash
-./skills/repo-public-readiness/scanner/run_scan.sh /path/to/your/repo > report.md
+./nexus-skills/skills/repo-public-readiness/scanner/run_scan.sh /path/to/your/repo > report.md
+```
+
+### Layer 3: GitHub Actions
+
+```yaml
+# .github/workflows/readiness.yml
+name: Repo Public Readiness
+on: [push, pull_request]
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v1
+        id: scan
+      - run: echo "Status is ${{ steps.scan.outputs.status }}"
+```
+
+### Layer 1: AI Agent
+
+Point any AI agent (Claude Code, GPT, etc.) to the SKILL.md:
+
+```
+Read skills/repo-public-readiness/SKILL.md and follow the instructions
+to scan this repository.
 ```
 
 ## Available Skills
