@@ -50,16 +50,37 @@ while IFS= read -r result; do
 done < <(grep -rnE 'BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY' "$REPO_PATH" --include='*' --exclude-dir='.git' --exclude-dir='node_modules' 2>/dev/null || true)
 
 # --- AWS credential patterns ---
+# Match actual AKIA keys (20-char literal), or aws_secret_access_key assigned a literal string value.
+# Exclude: variable/config references like config["key"], os.environ, process.env, ${VAR}
 while IFS= read -r result; do
   f=$(echo "$result" | cut -d: -f1)
   ln=$(echo "$result" | cut -d: -f2)
   emit "CRITICAL" "aws_credentials" "$f" "$ln" "Potential AWS access key found (AKIA pattern)" "Remove and rotate AWS credentials"
-done < <(grep -rnE '(AKIA[0-9A-Z]{16}|aws_secret_access_key\s*=)' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
+done < <(grep -rnE 'AKIA[0-9A-Z]{16}' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
 
-# --- Generic secret patterns ---
+# aws_secret_access_key with a hardcoded literal value (quoted string of sufficient length)
+# Excludes: variable lookups like config[...], os.environ[...], process.env., ${...}, etc.
 while IFS= read -r result; do
   f=$(echo "$result" | cut -d: -f1)
   ln=$(echo "$result" | cut -d: -f2)
+  line_content=$(echo "$result" | cut -d: -f3-)
+  # Skip lines where the value comes from a variable/config lookup
+  if echo "$line_content" | grep -qEi '(config\[|os\.environ|os\.getenv|process\.env|\$\{|getenv|ENV\[|Settings\.|settings\.)'; then
+    continue
+  fi
+  emit "CRITICAL" "aws_secret_hardcoded" "$f" "$ln" "Potential hardcoded AWS secret access key" "Remove and rotate AWS credentials"
+done < <(grep -rnEi 'aws_secret_access_key\s*[:=]\s*["\x27][A-Za-z0-9/+=]{20,}' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
+
+# --- Generic secret patterns ---
+# Match keyword=<literal_value> but exclude variable/config lookups
+while IFS= read -r result; do
+  f=$(echo "$result" | cut -d: -f1)
+  ln=$(echo "$result" | cut -d: -f2)
+  line_content=$(echo "$result" | cut -d: -f3-)
+  # Skip lines where the value comes from a variable/config lookup
+  if echo "$line_content" | grep -qEi '(config\[|os\.environ|os\.getenv|process\.env|\$\{|getenv|ENV\[|Settings\.|settings\.|kwargs\.get|\.get\(|params\[|options\[|args\.)'; then
+    continue
+  fi
   emit "HIGH" "hardcoded_secret" "$f" "$ln" "Potential hardcoded secret or token" "Move secret to environment variable or vault"
 done < <(grep -rnEi '(api[_-]?key|api[_-]?secret|auth[_-]?token|access[_-]?token|secret[_-]?key|private[_-]?key|password)\s*[:=]\s*["\x27][A-Za-z0-9+/=_-]{8,}' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
 
