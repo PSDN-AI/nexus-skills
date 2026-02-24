@@ -219,7 +219,7 @@ if [[ -f "$BIP39_WORDLIST" ]]; then
           emit "CRITICAL" "web3_bip39_mnemonic" "$f" "$line_num" "Potential BIP-39 mnemonic seed phrase detected" "Remove mnemonic and transfer funds to a new wallet with a fresh seed"
         fi
       done < "$f"
-    done < <(find "$REPO_PATH" -type f -name "*.$ext" -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
+    done < <(find "$REPO_PATH" -type f -name "*.$ext" -size -1048576c -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
   done
 
   unset _BIP39_REPORTED
@@ -236,18 +236,15 @@ while IFS= read -r result; do
 done < <(grep -rnEi '(solana|keypair|phantom|secret)\s*[:=]\s*["\x27]?[1-9A-HJ-NP-Za-km-z]{87,88}["\x27]?' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
 
 # Solana keypair JSON format: array of 64 integers (may span multiple lines)
-echo "[debug-solana-pre] REPO_PATH=$REPO_PATH json_files=$(find "$REPO_PATH" -type f -name '*.json' -not -path '*/.git/*' 2>&1 | head -5)" >&2
 while IFS= read -r -d '' f; do
   [[ -f "$f" ]] || continue
   # Collapse file to single line, strip whitespace, then validate as 64-byte array
   compact=$(tr -d '[:space:]' < "$f" 2>/dev/null) || continue
   # Quick structural check: starts with [, ends with ], contains only digits and commas
-  echo "[debug-solana] file=$f compact_len=${#compact} first40=${compact:0:40}" >&2
-  [[ "$compact" =~ ^\[[0-9,]+\]$ ]] || { echo "[debug-solana] regex failed" >&2; continue; }
+  [[ "$compact" =~ ^\[[0-9,]+\]$ ]] || continue
   inner="${compact#\[}"
   inner="${inner%\]}"
   IFS=',' read -ra nums <<< "$inner"
-  echo "[debug-solana] num_elements=${#nums[@]}" >&2
   # Must be exactly 64 elements, each 0-255
   if [[ "${#nums[@]}" -eq 64 ]]; then
     valid=true
@@ -258,7 +255,7 @@ while IFS= read -r -d '' f; do
       emit "CRITICAL" "web3_solana_keypair_json" "$f" "-" "Potential Solana keypair JSON file (64-byte array)" "Remove keypair file and generate a new wallet"
     fi
   fi
-done < <(find "$REPO_PATH" -type f -name '*.json' -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
+done < <(find "$REPO_PATH" -type f -name '*.json' -size -1048576c -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
 
 # --- Web3: Keystore / Wallet Files ---
 # File extension/name based detection
@@ -269,12 +266,10 @@ done < <(find "$REPO_PATH" -type f \( -name '*.keystore' -o -name '*.wallet' -o 
 # Ethereum keystore v3 content detection (JSON with crypto+ciphertext+kdf)
 while IFS= read -r -d '' f; do
   [[ -f "$f" ]] || continue
-  echo "[debug-keystore] checking $f" >&2
-  echo "[debug-keystore] crypto=$(grep -c '"crypto"' "$f" 2>&1) ciphertext=$(grep -c '"ciphertext"' "$f" 2>&1) kdf=$(grep -c '"kdf"' "$f" 2>&1)" >&2
   if grep -q '"crypto"' "$f" 2>/dev/null && grep -q '"ciphertext"' "$f" 2>/dev/null && grep -q '"kdf"' "$f" 2>/dev/null; then
     emit "HIGH" "web3_keystore_content" "$f" "-" "Ethereum keystore v3 file detected (contains crypto+ciphertext+kdf)" "Remove wallet file — consider rotating if password was weak"
   fi
-done < <(find "$REPO_PATH" -type f -name '*.json' -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
+done < <(find "$REPO_PATH" -type f -name '*.json' -size -1048576c -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
 
 # --- gitleaks (if available) ---
 if command -v gitleaks &>/dev/null; then

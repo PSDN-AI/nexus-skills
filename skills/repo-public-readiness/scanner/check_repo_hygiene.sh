@@ -14,7 +14,7 @@ while IFS= read -r f; do
   size_bytes=$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f" 2>/dev/null || echo "0")
   size_mb=$((size_bytes / 1048576))
   emit "MEDIUM" "large_file" "$f" "-" "Large file detected (${size_mb}MB)" "Remove or use Git LFS for large files"
-done < <(find "$REPO_PATH" -type f -size +10M -not -path '*/.git/*' 2>/dev/null || true)
+done < <(find "$REPO_PATH" -type f -size +10485760c -not -path '*/.git/*' 2>/dev/null || true)
 
 # --- Log files ---
 while IFS= read -r f; do
@@ -24,7 +24,7 @@ done < <(find "$REPO_PATH" -type f \( -name '*.log' -o -name '*.log.*' \) -not -
 # --- Data dumps / database exports ---
 while IFS= read -r f; do
   emit "HIGH" "data_dump" "$f" "-" "Potential data dump or database export found" "Remove data files — they may contain sensitive information"
-done < <(find "$REPO_PATH" -type f \( -name '*.sql' -o -name '*.dump' -o -name '*.bak' -o -name '*.csv' -o -name '*.sqlite' -o -name '*.db' \) -size +1M -not -path '*/.git/*' -not -path '*/migrations/*' 2>/dev/null || true)
+done < <(find "$REPO_PATH" -type f \( -name '*.sql' -o -name '*.dump' -o -name '*.bak' -o -name '*.csv' -o -name '*.sqlite' -o -name '*.db' \) -size +1048576c -not -path '*/.git/*' -not -path '*/migrations/*' 2>/dev/null || true)
 
 # --- Build artifacts ---
 build_dirs=("node_modules" "dist" "__pycache__" ".pytest_cache" ".next" ".nuxt" "build" "target" "vendor/bundle" ".gradle" "bin" "obj")

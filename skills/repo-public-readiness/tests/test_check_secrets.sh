@@ -351,12 +351,7 @@ test_solana_keypair_json_detected() {
   done
   arr+="]"
   create_file "keypair.json" "$arr"
-  # Debug: verify fixture exists and show file info
-  echo "    [debug] fixture: $FIXTURE_REPO/keypair.json exists=$(test -f "$FIXTURE_REPO/keypair.json" && echo yes || echo no)" >&2
-  echo "    [debug] file cmd: $(file "$FIXTURE_REPO/keypair.json" 2>&1)" >&2
-  echo "    [debug] find json: $(find "$FIXTURE_REPO" -name '*.json' -not -path '*/.git/*' 2>&1)" >&2
   run_check "$CHECK"
-  echo "    [debug] EXIT_CODE=$EXIT_CODE STDERR=$STDERR" >&2
   assert_contains "$OUTPUT" "CRITICAL|web3_solana_keypair_json" "detects Solana keypair JSON"
   teardown_fixture_dir
 }
@@ -381,12 +376,7 @@ test_ethereum_keystore_v3_detected() {
     "kdf": "scrypt"
   }
 }'
-  # Debug: verify fixture
-  echo "    [debug] wallet.json exists=$(test -f "$FIXTURE_REPO/wallet.json" && echo yes || echo no)" >&2
-  echo "    [debug] content: $(cat "$FIXTURE_REPO/wallet.json")" >&2
-  echo "    [debug] grep crypto: $(grep -c '"crypto"' "$FIXTURE_REPO/wallet.json" 2>&1)" >&2
   run_check "$CHECK"
-  echo "    [debug] EXIT_CODE=$EXIT_CODE STDERR=$STDERR" >&2
   assert_contains "$OUTPUT" "HIGH|web3_keystore_content" "detects Ethereum keystore v3 content"
   teardown_fixture_dir
 }
