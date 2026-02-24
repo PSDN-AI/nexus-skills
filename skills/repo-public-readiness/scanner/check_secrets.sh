@@ -236,6 +236,7 @@ while IFS= read -r result; do
 done < <(grep -rnEi '(solana|keypair|phantom|secret)\s*[:=]\s*["\x27]?[1-9A-HJ-NP-Za-km-z]{87,88}["\x27]?' "$REPO_PATH" "${SOURCE_INCLUDES[@]}" 2>/dev/null || true)
 
 # Solana keypair JSON format: array of 64 integers (may span multiple lines)
+echo "[debug-solana-pre] REPO_PATH=$REPO_PATH json_files=$(find "$REPO_PATH" -type f -name '*.json' -not -path '*/.git/*' 2>&1 | head -5)" >&2
 while IFS= read -r -d '' f; do
   [[ -f "$f" ]] || continue
   # Collapse file to single line, strip whitespace, then validate as 64-byte array
