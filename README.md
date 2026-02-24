@@ -1,8 +1,5 @@
 # Nexus Skills
 
-> *"What real-world problem do you solve?"*
-> — Sy Lee, CEO @ Poseidon AI
-
 ## What is this?
 
 A curated marketplace of reusable AI Agent Skills for Infrastructure, DevOps, and Automation. Each Skill is a standardized, battle-tested knowledge module that any AI Agent can use.
