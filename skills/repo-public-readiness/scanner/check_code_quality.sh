@@ -53,7 +53,7 @@ fi
 if [[ -f "$REPO_PATH/package.json" ]]; then
   if command -v npm &>/dev/null; then
     if [[ "$HAS_JQ" == "true" ]]; then
-      audit_output=$(cd "$REPO_PATH" && npm audit --json 2>/dev/null || true)
+      audit_output="$(cd "$REPO_PATH" && npm audit --json 2>/dev/null)" || true
       vuln_count=$(echo "$audit_output" | jq '.metadata.vulnerabilities.high // 0')
       crit_count=$(echo "$audit_output" | jq '.metadata.vulnerabilities.critical // 0')
       if [[ "$crit_count" -gt 0 ]]; then

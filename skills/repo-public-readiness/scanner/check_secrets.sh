@@ -42,18 +42,12 @@ while IFS= read -r -d '' f; do
 done < <(find "$REPO_PATH" -type f \( -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' -o -name 'id_rsa' -o -name 'id_ed25519' -o -name 'id_ecdsa' -o -name 'id_dsa' \) 2>/dev/null | tr '\n' '\0')
 
 # --- Private key content patterns ---
-# shellcheck disable=SC2094  # False positive: emit writes to stdout, not to $f
-while IFS= read -r -d '' f; do
-  # Skip binary files
-  file "$f" | grep -q text || continue
-  line_num=0
-  while IFS= read -r line; do
-    line_num=$((line_num + 1))
-    if echo "$line" | grep -qE 'BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY'; then
-      emit "CRITICAL" "private_key_content" "$f" "$line_num" "Private key content found in file" "Remove the key and rotate credentials"
-    fi
-  done < "$f"
-done < <(find "$REPO_PATH" -type f -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
+# Use grep directly — no 'file' command needed since grep inherently skips binary
+while IFS= read -r result; do
+  f=$(echo "$result" | cut -d: -f1)
+  ln=$(echo "$result" | cut -d: -f2)
+  emit "CRITICAL" "private_key_content" "$f" "$ln" "Private key content found in file" "Remove the key and rotate credentials"
+done < <(grep -rnE 'BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY' "$REPO_PATH" --include='*' --exclude-dir='.git' --exclude-dir='node_modules' 2>/dev/null || true)
 
 # --- AWS credential patterns ---
 while IFS= read -r result; do
@@ -212,7 +206,7 @@ if [[ -f "$BIP39_WORDLIST" ]]; then
   # shellcheck disable=SC2094  # False positive: emit writes to stdout, not to $f
   for ext in env env.* js ts json yaml yml toml; do
     while IFS= read -r -d '' f; do
-      file "$f" | grep -qE '(text|JSON)' || continue
+      file "$f" | grep -qiE 'text|script|json|xml|PEM|key|cert|ASCII' || continue
       line_num=0
       while IFS= read -r line; do
         line_num=$((line_num + 1))
@@ -225,7 +219,7 @@ if [[ -f "$BIP39_WORDLIST" ]]; then
           emit "CRITICAL" "web3_bip39_mnemonic" "$f" "$line_num" "Potential BIP-39 mnemonic seed phrase detected" "Remove mnemonic and transfer funds to a new wallet with a fresh seed"
         fi
       done < "$f"
-    done < <(find "$REPO_PATH" -type f -name "*.$ext" -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
+    done < <(find "$REPO_PATH" -type f -name "*.$ext" -size -1048576c -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
   done
 
   unset _BIP39_REPORTED
@@ -244,14 +238,16 @@ done < <(grep -rnEi '(solana|keypair|phantom|secret)\s*[:=]\s*["\x27]?[1-9A-HJ-N
 # Solana keypair JSON format: array of 64 integers (may span multiple lines)
 while IFS= read -r -d '' f; do
   [[ -f "$f" ]] || continue
-  # Collapse file to single line, strip whitespace, then match 64-integer array
+  # Collapse file to single line, strip whitespace, then validate as 64-byte array
   compact=$(tr -d '[:space:]' < "$f" 2>/dev/null) || continue
-  if [[ "$compact" =~ ^\[([0-9]{1,3},){63}[0-9]{1,3}\]$ ]]; then
-    # Validate every element is 0-255 (byte range)
-    inner="${compact#\[}"
-    inner="${inner%\]}"
+  # Quick structural check: starts with [, ends with ], contains only digits and commas
+  [[ "$compact" =~ ^\[[0-9,]+\]$ ]] || continue
+  inner="${compact#\[}"
+  inner="${inner%\]}"
+  IFS=',' read -ra nums <<< "$inner"
+  # Must be exactly 64 elements, each 0-255
+  if [[ "${#nums[@]}" -eq 64 ]]; then
     valid=true
-    IFS=',' read -ra nums <<< "$inner"
     for n in "${nums[@]}"; do
       [[ "$n" -le 255 ]] 2>/dev/null || { valid=false; break; }
     done
@@ -259,7 +255,7 @@ while IFS= read -r -d '' f; do
       emit "CRITICAL" "web3_solana_keypair_json" "$f" "-" "Potential Solana keypair JSON file (64-byte array)" "Remove keypair file and generate a new wallet"
     fi
   fi
-done < <(find "$REPO_PATH" -type f -name '*.json' -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
+done < <(find "$REPO_PATH" -type f -name '*.json' -size -1048576c -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
 
 # --- Web3: Keystore / Wallet Files ---
 # File extension/name based detection
@@ -273,7 +269,7 @@ while IFS= read -r -d '' f; do
   if grep -q '"crypto"' "$f" 2>/dev/null && grep -q '"ciphertext"' "$f" 2>/dev/null && grep -q '"kdf"' "$f" 2>/dev/null; then
     emit "HIGH" "web3_keystore_content" "$f" "-" "Ethereum keystore v3 file detected (contains crypto+ciphertext+kdf)" "Remove wallet file — consider rotating if password was weak"
   fi
-done < <(find "$REPO_PATH" -type f -name '*.json' -size -1M -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
+done < <(find "$REPO_PATH" -type f -name '*.json' -size -1048576c -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | tr '\n' '\0')
 
 # --- gitleaks (if available) ---
 if command -v gitleaks &>/dev/null; then

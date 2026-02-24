@@ -1,0 +1,76 @@
+name: Test Skills
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'skills/**'
+      - '.github/workflows/test-skills.yml'
+  pull_request:
+    paths:
+      - 'skills/**'
+      - '.github/workflows/test-skills.yml'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      skills: ${{ steps.changed.outputs.skills }}
+      has_changes: ${{ steps.changed.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed skills
+        id: changed
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+
+          # Find changed skill directories that have a test runner
+          SKILLS=()
+          for dir in skills/*/; do
+            skill=$(basename "$dir")
+            if git diff --name-only "$BASE" HEAD -- "$dir" | grep -q .; then
+              if [[ -f "$dir/tests/run_tests.sh" ]]; then
+                SKILLS+=("\"$skill\"")
+              fi
+            fi
+          done
+
+          if [[ ${#SKILLS[@]} -gt 0 ]]; then
+            MATRIX=$(IFS=,; echo "[${SKILLS[*]}]")
+            echo "skills=$MATRIX" >> "$GITHUB_OUTPUT"
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Changed skills with tests: $MATRIX"
+          else
+            echo "skills=[]" >> "$GITHUB_OUTPUT"
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No skill changes detected (or no test runners found)"
+          fi
+
+  test:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    strategy:
+      matrix:
+        skill: ${{ fromJSON(needs.detect-changes.outputs.skills) }}
+    runs-on: ubuntu-latest
+    name: test / ${{ matrix.skill }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests
+        run: bash "skills/${{ matrix.skill }}/tests/run_tests.sh"
+
+      - name: Shellcheck
+        run: |
+          sudo apt-get install -y shellcheck
+          SKILL_DIR="skills/${{ matrix.skill }}"
+          find "$SKILL_DIR" -name '*.sh' -not -path '*/tests/*' -exec shellcheck {} +
+          find "$SKILL_DIR/tests" -name '*.sh' -exec shellcheck -S warning {} +
