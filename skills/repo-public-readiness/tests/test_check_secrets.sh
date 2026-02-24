@@ -146,6 +146,14 @@ test_aws_secret_key_detected() {
   teardown_fixture_dir
 }
 
+test_aws_secret_key_quoted_detected() {
+  setup_fixture_dir
+  create_file_ln "config.yml" 'aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"'
+  run_check "$CHECK"
+  assert_contains "$OUTPUT" "CRITICAL|aws_credentials" "detects quoted aws_secret_access_key"
+  teardown_fixture_dir
+}
+
 # ============================================================
 # Generic hardcoded secrets
 # ============================================================
@@ -164,6 +172,22 @@ test_password_assignment_detected() {
   create_file_ln "app.py" 'password: "MyS3cretPassw0rd0xyz1"'
   run_check "$CHECK"
   assert_contains "$OUTPUT" "HIGH|hardcoded_secret" "detects password assignment"
+  teardown_fixture_dir
+}
+
+test_password_assignment_with_getenv_comment_detected() {
+  setup_fixture_dir
+  create_file_ln "app.py" 'password: "MyS3cretPassw0rd0xyz1"  # fallback if os.getenv("PASSWORD") is empty'
+  run_check "$CHECK"
+  assert_contains "$OUTPUT" "HIGH|hardcoded_secret" "detects hardcoded password even with getenv comment"
+  teardown_fixture_dir
+}
+
+test_password_variable_lookup_not_flagged() {
+  setup_fixture_dir
+  create_file_ln "app.py" 'password = os.getenv("PASSWORD")'
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "hardcoded_secret" "variable lookup not flagged as hardcoded_secret"
   teardown_fixture_dir
 }
 
@@ -432,8 +456,11 @@ test_ec_private_key_content_detected
 test_public_key_not_flagged
 test_aws_akia_detected
 test_aws_secret_key_detected
+test_aws_secret_key_quoted_detected
 test_api_key_assignment_detected
 test_password_assignment_detected
+test_password_assignment_with_getenv_comment_detected
+test_password_variable_lookup_not_flagged
 test_short_value_not_flagged
 test_private_ip_detected
 test_localhost_excluded
