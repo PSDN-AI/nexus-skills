@@ -1,4 +1,3 @@
-```yaml
 ---
 name: your-skill-name
 description: Does X and Y. Use when the user needs to Z.
@@ -8,7 +7,6 @@ metadata:
   author:
   version: "1.0.0"
 ---
-```
 
 # Skill Name
 
