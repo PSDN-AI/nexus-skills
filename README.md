@@ -35,6 +35,13 @@ Every Skill can be consumed at three layers:
 
 ## Quick Start
 
+### Claude Code (Plugin Marketplace)
+
+```bash
+/plugin marketplace add PSDN-AI/nexus-skills
+/plugin install repo-public-readiness@nexus-skills
+```
+
 ### Layer 2: CLI
 
 ```bash
