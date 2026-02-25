@@ -15,7 +15,7 @@ A Skill is a **knowledge document first, executable second**.
 │  → Automated pipeline integration via action.yml   │
 ├────────────────────────────────────────────────────┤
 │  Layer 2: CLI (Bash Scripts)                       │
-│  ./scanner/run_scan.sh /path/to/repo               │
+│  ./scripts/run_scan.sh /path/to/repo                │
 │  → Direct execution by humans or agents            │
 ├────────────────────────────────────────────────────┤
 │  Layer 1: AI Knowledge (SKILL.md)                  │
@@ -36,7 +36,7 @@ The foundational layer. SKILL.md contains step-by-step instructions that any AI 
 
 Pre-built bash scripts that automate the instructions in SKILL.md. Useful for humans running scans manually, or for AI Agents that prefer to delegate to a script rather than executing step-by-step.
 
-**Consumption**: `./scanner/run_scan.sh /path/to/repo`
+**Consumption**: `./scripts/run_scan.sh /path/to/repo`
 
 ### Layer 3: CI/CD
 

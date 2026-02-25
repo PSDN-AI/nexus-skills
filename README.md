@@ -15,7 +15,7 @@ Every Skill can be consumed at three layers:
 │  → Automated pipeline integration via action.yml   │
 ├────────────────────────────────────────────────────┤
 │  Layer 2: CLI (Bash Scripts)                       │
-│  ./scanner/run_scan.sh /path/to/repo               │
+│  ./scripts/run_scan.sh /path/to/repo                │
 │  → Direct execution by humans or agents            │
 ├────────────────────────────────────────────────────┤
 │  Layer 1: AI Knowledge (SKILL.md)                  │
@@ -39,13 +39,13 @@ Every Skill can be consumed at three layers:
 
 ```bash
 git clone https://github.com/PSDN-AI/nexus-skills.git
-./nexus-skills/skills/repo-public-readiness/scanner/run_scan.sh /path/to/your/repo
+./nexus-skills/skills/repo-public-readiness/scripts/run_scan.sh /path/to/your/repo
 ```
 
 Save the report:
 
 ```bash
-./nexus-skills/skills/repo-public-readiness/scanner/run_scan.sh /path/to/your/repo > report.md
+./nexus-skills/skills/repo-public-readiness/scripts/run_scan.sh /path/to/your/repo > report.md
 ```
 
 ### Layer 3: GitHub Actions
