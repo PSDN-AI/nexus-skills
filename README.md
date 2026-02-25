@@ -2,26 +2,26 @@
 
 ## What is this?
 
-A curated marketplace of reusable AI Agent Skills for Infrastructure, DevOps, and Automation. Each Skill is a standardized, battle-tested knowledge module that any AI Agent can use.
+A curated marketplace of reusable AI Agent Skills for Infrastructure, DevOps, and Automation. Each Skill is a standardized, battle-tested knowledge module that any AI Agent can use. Skills follow the [Agent Skills standard](https://agentskills.io) — the open format supported by 30+ agent products.
 
 ## How Skills Work
 
 Every Skill can be consumed at three layers:
 
 ```
-┌────────────────────────────────────────────────────┐
-│  Layer 3: CI/CD (GitHub Actions)                   │
-│  uses: PSDN-AI/nexus-skills/skills/...@v0.0.1      │
-│  → Automated pipeline integration via action.yml   │
-├────────────────────────────────────────────────────┤
-│  Layer 2: CLI (Bash Scripts)                       │
-│  ./scripts/run_scan.sh /path/to/repo                │
-│  → Direct execution by humans or agents            │
-├────────────────────────────────────────────────────┤
-│  Layer 1: AI Knowledge (SKILL.md)                  │
-│  AI reads instructions → understands task → acts   │
-│  → Any AI agent can consume this, vendor-neutral   │
-└────────────────────────────────────────────────────┘
++----------------------------------------------------+
+|  Layer 3: CI/CD (GitHub Actions)                   |
+|  uses: PSDN-AI/nexus-skills/skills/...@v0.0.1      |
+|  -> Automated pipeline integration via action.yml  |
++----------------------------------------------------+
+|  Layer 2: CLI (Bash Scripts)                       |
+|  ./scripts/run_scan.sh /path/to/repo               |
+|  -> Direct execution by humans or agents           |
++----------------------------------------------------+
+|  Layer 1: AI Knowledge (SKILL.md)                  |
+|  AI reads instructions -> understands task -> acts |
+|  -> Any AI agent can consume this, vendor-neutral  |
++----------------------------------------------------+
 ```
 
 ## Prerequisites

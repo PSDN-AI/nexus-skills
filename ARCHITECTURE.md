@@ -9,19 +9,19 @@ A Skill is a **knowledge document first, executable second**.
 ## Three-Layer Consumption Model
 
 ```
-┌────────────────────────────────────────────────────┐
-│  Layer 3: CI/CD (GitHub Actions)                   │
-│  uses: PSDN-AI/nexus-skills/skills/...@v0.0.1      │
-│  → Automated pipeline integration via action.yml   │
-├────────────────────────────────────────────────────┤
-│  Layer 2: CLI (Bash Scripts)                       │
-│  ./scripts/run_scan.sh /path/to/repo                │
-│  → Direct execution by humans or agents            │
-├────────────────────────────────────────────────────┤
-│  Layer 1: AI Knowledge (SKILL.md)                  │
-│  AI reads instructions → understands task → acts   │
-│  → Any AI agent can consume this, vendor-neutral   │
-└────────────────────────────────────────────────────┘
++----------------------------------------------------+
+|  Layer 3: CI/CD (GitHub Actions)                   |
+|  uses: PSDN-AI/nexus-skills/skills/...@v0.0.1      |
+|  -> Automated pipeline integration via action.yml  |
++----------------------------------------------------+
+|  Layer 2: CLI (Bash Scripts)                       |
+|  ./scripts/run_scan.sh /path/to/repo               |
+|  -> Direct execution by humans or agents           |
++----------------------------------------------------+
+|  Layer 1: AI Knowledge (SKILL.md)                  |
+|  AI reads instructions -> understands task -> acts |
+|  -> Any AI agent can consume this, vendor-neutral  |
++----------------------------------------------------+
 ```
 
 Each layer wraps the one below it. SKILL.md is always the source of truth.
@@ -91,4 +91,4 @@ No package manager, no git submodules. Git + URL is the distribution mechanism.
 
 ## Discovery
 
-Agent products discover Skills by scanning the `skills/` directory for `SKILL.md` files. Each `SKILL.md` contains YAML frontmatter with `name` and `description` fields that agents parse at startup for discovery.
+Agent products discover Skills by scanning the `skills/` directory for `SKILL.md` files. Each `SKILL.md` contains YAML frontmatter with `name` and `description` fields that agents parse at startup for discovery. See the [Agent Skills standard](https://agentskills.io/specification) for details.
