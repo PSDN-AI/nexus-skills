@@ -212,6 +212,24 @@ test_python_poetry_mypy_dep_suppresses_typechecker() {
   teardown_fixture_dir
 }
 
+test_python_poetry_no_linter_still_flags() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  printf '[tool.poetry.group.dev.dependencies]\nrequests = "^2.31"\npytest = "^7.0"\n' > "$FIXTURE_REPO/pyproject.toml"
+  run_check "$CHECK"
+  assert_contains "$OUTPUT" "LOW|python_no_linter" "Poetry deps without linter still flags"
+  teardown_fixture_dir
+}
+
+test_python_poetry_no_typechecker_still_flags() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  printf '[tool.poetry.group.dev.dependencies]\nrequests = "^2.31"\nruff = "^0.5.0"\n' > "$FIXTURE_REPO/pyproject.toml"
+  run_check "$CHECK"
+  assert_contains "$OUTPUT" "LOW|python_no_typechecker" "Poetry deps without typechecker still flags"
+  teardown_fixture_dir
+}
+
 test_non_python_skips_checks() {
   setup_fixture_dir
   echo '{}' > "$FIXTURE_REPO/package.json"
@@ -246,5 +264,7 @@ test_python_pyproject_mypy_suppresses_typechecker
 test_python_pyrightconfig_suppresses_typechecker
 test_python_poetry_ruff_dep_suppresses_linter
 test_python_poetry_mypy_dep_suppresses_typechecker
+test_python_poetry_no_linter_still_flags
+test_python_poetry_no_typechecker_still_flags
 test_non_python_skips_checks
 print_summary
