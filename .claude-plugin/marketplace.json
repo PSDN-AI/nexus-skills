@@ -1,0 +1,23 @@
+{
+  "name": "nexus-skills",
+  "owner": {
+    "name": "PSDN-AI"
+  },
+  "metadata": {
+    "description": "Reusable AI Agent Skills for Infrastructure, DevOps, and Automation",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "repo-public-readiness",
+      "source": "./skills/repo-public-readiness",
+      "description": "Scans repositories for secrets, code quality issues, missing documentation, and compliance problems before making them public",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": ["security", "secrets", "compliance", "documentation", "code-quality", "open-source"],
+      "category": "security",
+      "homepage": "https://github.com/PSDN-AI/nexus-skills",
+      "repository": "https://github.com/PSDN-AI/nexus-skills"
+    }
+  ]
+}
