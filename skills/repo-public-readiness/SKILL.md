@@ -6,6 +6,8 @@ compatibility: "Requires bash 4.0+, grep, find, file, wc, du, stat. Optional: gi
 metadata:
   author: PSDN-AI
   version: "0.1.0"
+  complexity: intermediate
+  tags: "security, compliance, documentation, code-quality, repo-hygiene, pre-release, web3"
 ---
 
 # Repo Public Readiness Scanner
