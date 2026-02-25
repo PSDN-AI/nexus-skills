@@ -1,11 +1,11 @@
 ---
 name: repo-public-readiness
-description: Scans repositories for hardcoded secrets, API keys, credentials, PII, Web3 private keys, code quality issues, missing documentation, and compliance problems before making them public. Use when preparing to open-source a private repo, auditing a codebase for accidentally committed secrets, or running a pre-release security and compliance checklist.
+description: "Scans repositories for hardcoded secrets, API keys, credentials, PII, Web3 private keys, code quality issues, missing documentation, and compliance problems before making them public. Use when preparing to open-source a private repo, auditing a codebase for accidentally committed secrets, or running a pre-release security and compliance checklist."
 license: MIT
-compatibility: Requires bash 4.0+, grep, find, file, wc, du, stat. Optional: gitleaks, shellcheck, trivy, jq for enhanced checks.
+compatibility: "Requires bash 4.0+, grep, find, file, wc, du, stat. Optional: gitleaks, shellcheck, trivy, jq for enhanced checks."
 metadata:
   author: PSDN-AI
-  version: "1.0.0"
+  version: "0.1.0"
 ---
 
 # Repo Public Readiness Scanner
