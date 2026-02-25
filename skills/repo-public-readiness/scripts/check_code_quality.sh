@@ -158,7 +158,7 @@ if [[ "$IS_PYTHON" == "true" ]]; then
     done
   fi
   if [[ "$has_linter" == "false" && -f "$REPO_PATH/pyproject.toml" ]]; then
-    if grep -qEi '"(ruff|flake8|pylint)\b' "$REPO_PATH/pyproject.toml" 2>/dev/null; then
+    if grep -qEi '^\s*(ruff|flake8|pylint)\s*=' "$REPO_PATH/pyproject.toml" 2>/dev/null; then
       has_linter=true
     fi
   fi
@@ -211,7 +211,7 @@ if [[ "$IS_PYTHON" == "true" ]]; then
     done
   fi
   if [[ "$has_typechecker" == "false" && -f "$REPO_PATH/pyproject.toml" ]]; then
-    if grep -qEi '"(mypy|pyright|pytype)\b' "$REPO_PATH/pyproject.toml" 2>/dev/null; then
+    if grep -qEi '^\s*(mypy|pyright|pytype)\s*=' "$REPO_PATH/pyproject.toml" 2>/dev/null; then
       has_typechecker=true
     fi
   fi

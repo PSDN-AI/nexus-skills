@@ -194,6 +194,24 @@ test_python_pyrightconfig_suppresses_typechecker() {
   teardown_fixture_dir
 }
 
+test_python_poetry_ruff_dep_suppresses_linter() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  printf '[tool.poetry.group.dev.dependencies]\nruff = "^0.5.0"\n' > "$FIXTURE_REPO/pyproject.toml"
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "python_no_linter" "Poetry ruff dependency suppresses linter warning"
+  teardown_fixture_dir
+}
+
+test_python_poetry_mypy_dep_suppresses_typechecker() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  printf '[tool.poetry.group.dev.dependencies]\nmypy = "^1.0"\n' > "$FIXTURE_REPO/pyproject.toml"
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "python_no_typechecker" "Poetry mypy dependency suppresses type checker warning"
+  teardown_fixture_dir
+}
+
 test_non_python_skips_checks() {
   setup_fixture_dir
   echo '{}' > "$FIXTURE_REPO/package.json"
@@ -226,5 +244,7 @@ test_python_no_typechecker_detected
 test_python_mypy_ini_suppresses_typechecker
 test_python_pyproject_mypy_suppresses_typechecker
 test_python_pyrightconfig_suppresses_typechecker
+test_python_poetry_ruff_dep_suppresses_linter
+test_python_poetry_mypy_dep_suppresses_typechecker
 test_non_python_skips_checks
 print_summary
