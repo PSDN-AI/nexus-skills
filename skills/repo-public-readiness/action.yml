@@ -24,7 +24,7 @@ runs:
       shell: bash
       run: |
         REPORT_PATH="${{ runner.temp }}/readiness-report.md"
-        "${{ github.action_path }}/scanner/run_scan.sh" "${{ inputs.repo_path }}" > "$REPORT_PATH"
+        "${{ github.action_path }}/scripts/run_scan.sh" "${{ inputs.repo_path }}" > "$REPORT_PATH"
 
         # Extract overall status for output
         if grep -q "❌ NOT READY" "$REPORT_PATH"; then

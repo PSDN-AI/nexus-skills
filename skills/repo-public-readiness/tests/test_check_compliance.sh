@@ -96,9 +96,9 @@ This is a great open-source project for everyone."
 
 test_scanner_dir_self_excluded() {
   setup_fixture_dir
-  # The compliance script excludes paths matching /repo-public-readiness/scanner/
-  mkdir -p "$FIXTURE_REPO/repo-public-readiness/scanner"
-  create_file_ln "repo-public-readiness/scanner/check.sh" "# internal-only comment"
+  # The compliance script excludes paths matching /repo-public-readiness/scripts/
+  mkdir -p "$FIXTURE_REPO/repo-public-readiness/scripts"
+  create_file_ln "repo-public-readiness/scripts/check.sh" "# internal-only comment"
   create_file_ln "LICENSE" "MIT License"
   run_check "$CHECK"
   assert_not_contains "$OUTPUT" "internal_reference" "scanner dir self-excluded from internal ref scan"

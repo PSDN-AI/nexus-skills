@@ -44,9 +44,9 @@ package main"
 
 test_scanner_dir_excluded() {
   setup_fixture_dir
-  # check_code_quality.sh excludes paths matching /repo-public-readiness/scanner/
-  mkdir -p "$FIXTURE_REPO/repo-public-readiness/scanner"
-  create_file_ln "repo-public-readiness/scanner/check.sh" "# TODO: this should be excluded"
+  # check_code_quality.sh excludes paths matching /repo-public-readiness/scripts/
+  mkdir -p "$FIXTURE_REPO/repo-public-readiness/scripts"
+  create_file_ln "repo-public-readiness/scripts/check.sh" "# TODO: this should be excluded"
   run_check "$CHECK"
   assert_not_contains "$OUTPUT" "todo_comment" "scanner dir excluded from TODO scan"
   teardown_fixture_dir
@@ -101,6 +101,146 @@ test_trivy_handling() {
 }
 
 # ============================================================
+# Python linter configuration detection
+# ============================================================
+
+test_python_no_linter_detected() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  echo "requests" > "$FIXTURE_REPO/requirements.txt"
+  run_check "$CHECK"
+  assert_contains "$OUTPUT" "LOW|python_no_linter" "detects missing Python linter"
+  teardown_fixture_dir
+}
+
+test_python_ruff_toml_suppresses_linter() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  echo "requests" > "$FIXTURE_REPO/requirements.txt"
+  printf '[lint]\nselect = ["E", "F"]\n' > "$FIXTURE_REPO/ruff.toml"
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "python_no_linter" "ruff.toml suppresses linter warning"
+  teardown_fixture_dir
+}
+
+test_python_pyproject_ruff_suppresses_linter() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  printf '[tool.ruff]\nline-length = 88\n' > "$FIXTURE_REPO/pyproject.toml"
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "python_no_linter" "pyproject.toml [tool.ruff] suppresses linter warning"
+  teardown_fixture_dir
+}
+
+test_python_flake8_suppresses_linter() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  echo "requests" > "$FIXTURE_REPO/requirements.txt"
+  touch "$FIXTURE_REPO/.flake8"
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "python_no_linter" ".flake8 suppresses linter warning"
+  teardown_fixture_dir
+}
+
+test_python_precommit_ruff_suppresses_linter() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  echo "requests" > "$FIXTURE_REPO/requirements.txt"
+  printf 'repos:\n  - repo: https://github.com/astral-sh/ruff-pre-commit\n    hooks:\n      - id: ruff\n' > "$FIXTURE_REPO/.pre-commit-config.yaml"
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "python_no_linter" "pre-commit ruff suppresses linter warning"
+  teardown_fixture_dir
+}
+
+# ============================================================
+# Python type checker configuration detection
+# ============================================================
+
+test_python_no_typechecker_detected() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  echo "requests" > "$FIXTURE_REPO/requirements.txt"
+  run_check "$CHECK"
+  assert_contains "$OUTPUT" "LOW|python_no_typechecker" "detects missing Python type checker"
+  teardown_fixture_dir
+}
+
+test_python_mypy_ini_suppresses_typechecker() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  echo "requests" > "$FIXTURE_REPO/requirements.txt"
+  printf '[mypy]\nstrict = True\n' > "$FIXTURE_REPO/mypy.ini"
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "python_no_typechecker" "mypy.ini suppresses type checker warning"
+  teardown_fixture_dir
+}
+
+test_python_pyproject_mypy_suppresses_typechecker() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  printf '[tool.mypy]\nstrict = true\n' > "$FIXTURE_REPO/pyproject.toml"
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "python_no_typechecker" "pyproject.toml [tool.mypy] suppresses type checker warning"
+  teardown_fixture_dir
+}
+
+test_python_pyrightconfig_suppresses_typechecker() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  echo "requests" > "$FIXTURE_REPO/requirements.txt"
+  echo '{}' > "$FIXTURE_REPO/pyrightconfig.json"
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "python_no_typechecker" "pyrightconfig.json suppresses type checker warning"
+  teardown_fixture_dir
+}
+
+test_python_poetry_ruff_dep_suppresses_linter() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  printf '[tool.poetry.group.dev.dependencies]\nruff = "^0.5.0"\n' > "$FIXTURE_REPO/pyproject.toml"
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "python_no_linter" "Poetry ruff dependency suppresses linter warning"
+  teardown_fixture_dir
+}
+
+test_python_poetry_mypy_dep_suppresses_typechecker() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  printf '[tool.poetry.group.dev.dependencies]\nmypy = "^1.0"\n' > "$FIXTURE_REPO/pyproject.toml"
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "python_no_typechecker" "Poetry mypy dependency suppresses type checker warning"
+  teardown_fixture_dir
+}
+
+test_python_poetry_no_linter_still_flags() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  printf '[tool.poetry.group.dev.dependencies]\nrequests = "^2.31"\npytest = "^7.0"\n' > "$FIXTURE_REPO/pyproject.toml"
+  run_check "$CHECK"
+  assert_contains "$OUTPUT" "LOW|python_no_linter" "Poetry deps without linter still flags"
+  teardown_fixture_dir
+}
+
+test_python_poetry_no_typechecker_still_flags() {
+  setup_fixture_dir
+  create_file_ln "app.py" "print('hello')"
+  printf '[tool.poetry.group.dev.dependencies]\nrequests = "^2.31"\nruff = "^0.5.0"\n' > "$FIXTURE_REPO/pyproject.toml"
+  run_check "$CHECK"
+  assert_contains "$OUTPUT" "LOW|python_no_typechecker" "Poetry deps without typechecker still flags"
+  teardown_fixture_dir
+}
+
+test_non_python_skips_checks() {
+  setup_fixture_dir
+  echo '{}' > "$FIXTURE_REPO/package.json"
+  create_file_ln "index.js" "console.log('hello')"
+  run_check "$CHECK"
+  assert_not_contains "$OUTPUT" "python_no_linter" "non-Python project skips linter check"
+  assert_not_contains "$OUTPUT" "python_no_typechecker" "non-Python project skips type checker check"
+  teardown_fixture_dir
+}
+
+# ============================================================
 # Run all tests
 # ============================================================
 
@@ -113,4 +253,18 @@ test_no_todos_clean
 test_npm_audit_skipped_no_package_json
 test_shellcheck_handling
 test_trivy_handling
+test_python_no_linter_detected
+test_python_ruff_toml_suppresses_linter
+test_python_pyproject_ruff_suppresses_linter
+test_python_flake8_suppresses_linter
+test_python_precommit_ruff_suppresses_linter
+test_python_no_typechecker_detected
+test_python_mypy_ini_suppresses_typechecker
+test_python_pyproject_mypy_suppresses_typechecker
+test_python_pyrightconfig_suppresses_typechecker
+test_python_poetry_ruff_dep_suppresses_linter
+test_python_poetry_mypy_dep_suppresses_typechecker
+test_python_poetry_no_linter_still_flags
+test_python_poetry_no_typechecker_still_flags
+test_non_python_skips_checks
 print_summary

@@ -1,46 +1,42 @@
+---
+name: your-skill-name
+description: Does X and Y. Use when the user needs to Z.
+license: MIT
+compatibility:
+metadata:
+  author:
+  version: "1.0.0"
+---
+
 # Skill Name
 
-> What real-world problem do you solve?
-> One sentence answer here.
+> What real-world problem do you solve? One sentence.
 
 ## When Should You Use This?
 
-- Scenario 1
-- Scenario 2
-- Scenario 3
+-
+-
+-
 
 ## Prerequisites
 
-What tools, access, or knowledge is needed.
-
 **Required**:
-- Tool 1
+-
 
-**Optional** (enhanced functionality when available):
-- Tool 2
+**Optional**:
+-
 
 ## Instructions
 
-Step-by-step guidance for the AI Agent to follow.
-
-1. First step
-2. Second step
-3. Decision point:
-   - If condition A → do X
-   - If condition B → do Y
-4. Final step
+1.
+2.
+3.
 
 ## Validation
 
-How to verify the Skill was executed correctly.
-
-- Check 1
-- Check 2
-- Check 3
+-
+-
 
 ## Common Pitfalls
 
-Known failure modes and how to avoid them.
-
-- **Pitfall 1**: Description and how to avoid it.
-- **Pitfall 2**: Description and how to avoid it.
+- **Pitfall**: Description and how to avoid it.

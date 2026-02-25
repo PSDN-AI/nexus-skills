@@ -1,3 +1,13 @@
+---
+name: repo-public-readiness
+description: Scans repositories for hardcoded secrets, API keys, credentials, PII, Web3 private keys, code quality issues, missing documentation, and compliance problems before making them public. Use when preparing to open-source a private repo, auditing a codebase for accidentally committed secrets, or running a pre-release security and compliance checklist.
+license: MIT
+compatibility: Requires bash 4.0+, grep, find, file, wc, du, stat. Optional: gitleaks, shellcheck, trivy, jq for enhanced checks.
+metadata:
+  author: PSDN-AI
+  version: "1.0.0"
+---
+
 # Repo Public Readiness Scanner
 
 > Before making a repository public, teams need to ensure it contains no secrets, meets quality standards, has proper documentation, and is free of compliance issues. This Skill provides a comprehensive, automated scan with a clear pass/fail report.
@@ -39,10 +49,10 @@ If an optional tool is not installed, the scanner reports the check as **SKIPPED
 
 ```bash
 # Basic usage — report to stdout
-./skills/repo-public-readiness/scanner/run_scan.sh /path/to/target/repo
+./skills/repo-public-readiness/scripts/run_scan.sh /path/to/target/repo
 
 # Save report to file
-./skills/repo-public-readiness/scanner/run_scan.sh /path/to/repo > report.md
+./skills/repo-public-readiness/scripts/run_scan.sh /path/to/repo > report.md
 ```
 
 The scanner executes five check modules in sequence (Security → Code Quality → Documentation → Repo Hygiene → Legal/Compliance), then generates a Markdown report with an overall verdict.
@@ -198,7 +208,7 @@ The highest-priority dimension. Any CRITICAL here blocks public release.
 | **Severity** | CRITICAL |
 | **Detection strategy** | Find sequences of exactly 12, 15, 18, 21, or 24 space-separated words (valid BIP-39 lengths) where ≥ 80% match the BIP-39 English wordlist (2048 words) |
 | **Context clues** | Lines containing `mnemonic`, `seed`, `recovery`, `phrase`, `12 words`, `24 words` near a word sequence |
-| **Wordlist** | Embedded at `scanner/data/bip39_english.txt` (sourced from [BIP-39 spec](https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt)) |
+| **Wordlist** | Embedded at `scripts/data/bip39_english.txt` (sourced from [BIP-39 spec](https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt)) |
 | **Exclude** | Known test mnemonics (e.g., Hardhat's default `test test test...junk`) |
 | **Performance** | Two-pass: scan lines with context clues first, then validate bare sequences in config/env files |
 | **Remediation** | Remove mnemonic and transfer funds to a new wallet with a fresh seed |
@@ -283,6 +293,24 @@ The highest-priority dimension. Any CRITICAL here blocks public release.
 | **Requires** | `trivy` + `jq` |
 | **Severity** | HIGH for any high/critical findings |
 | **Fallback** | SKIPPED if tools missing |
+
+#### 2.6 Python Linter Configuration
+
+| Aspect | Detail |
+|--------|--------|
+| **Trigger** | Repo is a Python project (has `.py` files and a project manifest like `pyproject.toml`, `setup.py`, `setup.cfg`, or `requirements.txt`) |
+| **Severity** | LOW if no linter configured |
+| **What to find** | Presence of any linter configuration: `ruff.toml`, `.ruff.toml`, `.flake8`, `.pylintrc`, `pylintrc`, `pyproject.toml` with `[tool.ruff]`/`[tool.pylint]`/`[tool.flake8]`, `setup.cfg` with `[flake8]`/`[pylint]`, `.pre-commit-config.yaml` referencing ruff/flake8/pylint, or these tools listed as dependencies |
+| **Remediation** | Add ruff — fast, comprehensive, replaces flake8+isort+pyflakes. See https://docs.astral.sh/ruff/ |
+
+#### 2.7 Python Type Checker Configuration
+
+| Aspect | Detail |
+|--------|--------|
+| **Trigger** | Same Python project detection as 2.6 |
+| **Severity** | LOW if no type checker configured |
+| **What to find** | Presence of any type checker configuration: `mypy.ini`, `.mypy.ini`, `pyrightconfig.json`, `pyrightconfig.yaml`, `pyproject.toml` with `[tool.mypy]`/`[tool.pyright]`/`[tool.pytype]`, `setup.cfg` with `[mypy]`, `.pre-commit-config.yaml` referencing mypy/pyright/pytype, or these tools listed as dependencies |
+| **Remediation** | Add mypy or pyright for static type checking to catch bugs early. See https://mypy.readthedocs.io/ |
 
 ---
 

@@ -10,7 +10,7 @@ if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SCANNER_DIR="$(cd "$SCRIPT_DIR/../scanner" && pwd)"
+SCANNER_DIR="$(cd "$SCRIPT_DIR/../scripts" && pwd)"
 
 SUITE_FAILURES=0
 
