@@ -1,6 +1,6 @@
 # Scan Specification
 
-Complete reference for what to check, how to check it, and how to classify findings. An LLM reading only this document should be able to perform a full repo public readiness audit.
+Complete reference for what to check, how to check it, and how to classify findings. For scoring logic and report format, see [SKILL.md](../SKILL.md#scoring-logic) and [REPORT_FORMAT.md](REPORT_FORMAT.md).
 
 ## Table of Contents
 
