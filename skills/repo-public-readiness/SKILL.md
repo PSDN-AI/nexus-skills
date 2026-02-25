@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Requires bash 4.0+, grep, find, file, wc, du, stat. Optional: gitleaks, shellcheck, trivy, jq for enhanced checks."
 metadata:
   author: PSDN-AI
-  version: "1.0.0"
+  version: "0.1.0"
 ---
 
 # Repo Public Readiness Scanner

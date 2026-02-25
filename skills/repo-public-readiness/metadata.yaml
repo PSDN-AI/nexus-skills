@@ -1,5 +1,5 @@
 name: repo-public-readiness
-version: 1.0.0
+version: 0.1.0
 description: "Comprehensive scan to verify a repository is safe and ready to be made public"
 author: PSDN-AI
 license: MIT
