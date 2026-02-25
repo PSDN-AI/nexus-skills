@@ -1,10 +1,9 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-Top-level files define repository standards: `README.md`, `CONTRIBUTING.md`, `SKILL_TEMPLATE.md`, `catalog.yaml`, and `CLAUDE.md`.  
+Top-level files define repository standards: `README.md`, `CONTRIBUTING.md`, `SKILL_TEMPLATE.md`, `SKILL_GUIDE.md`, and `CLAUDE.md`.
 All skills live in `skills/<skill-name>/` (lowercase kebab-case). Each skill must include:
-- `SKILL.md` (human-readable workflow)
-- `metadata.yaml` (machine-readable metadata)
+- `SKILL.md` (YAML frontmatter + instructions)
 
 The current reference skill is `skills/repo-public-readiness/`:
 - `scripts/` for executable checks (`run_scan.sh`, `check_*.sh`)
@@ -46,7 +45,7 @@ PRs should include:
 - Problem statement (what real-world issue the change solves)
 - Summary of files changed
 - Validation evidence (commands run and key output)
-- Any `catalog.yaml` updates required for new skills
+- Validation evidence (scanner output)
 
 ## Security & Configuration Tips
 Never commit secrets, private keys, or `.env` files.  

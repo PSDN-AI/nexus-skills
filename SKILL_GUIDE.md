@@ -268,60 +268,6 @@ The `scripts/` directory contains executable code agents can run. Scripts are op
 
 These conventions go beyond the Agent Skills standard and are specific to this repository.
 
-### metadata.yaml
-
-Each Skill should include a `metadata.yaml` alongside `SKILL.md`. This is a Nexus extension (not part of the Agent Skills standard) used by our catalog tooling:
-
-```yaml
-name: my-skill
-version: 1.0.0
-description: "Same one-liner as the SKILL.md frontmatter description"
-author: PSDN-AI
-license: MIT
-
-tags:
-  - category (e.g., security, infrastructure, ci-cd)
-  - technology (e.g., aws, terraform, github-actions)
-
-complexity: beginner | intermediate | advanced
-
-inputs:
-  - name: target_path
-    type: string
-    description: "What the user provides"
-    required: true
-
-outputs:
-  - name: report
-    type: file
-    description: "What the Skill produces"
-
-dependencies:
-  tools:
-    - name: tool-name
-      required: false
-      description: "What it's used for"
-  skills: []
-
-tested_with:
-  - claude-code
-```
-
-### catalog.yaml
-
-After adding a Skill, add an entry to the root `catalog.yaml`:
-
-```yaml
-skills:
-  - name: my-skill
-    version: 1.0.0
-    description: "One-liner matching SKILL.md"
-    path: skills/my-skill
-    complexity: intermediate
-    tags:
-      - relevant-tag
-```
-
 ### Tests
 
 Tests are not required by the Agent Skills standard but are strongly recommended in Nexus. If your Skill includes scripts, add a `tests/` directory with:
@@ -406,8 +352,6 @@ Avoid abbreviations unless universally understood (`eks`, `ci-cd`, `aws`).
 - [ ] Scripts degrade gracefully when optional tools are missing
 
 ### Nexus Requirements
-- [ ] `metadata.yaml` is present and complete
-- [ ] `catalog.yaml` entry is added
 - [ ] Tests exist (if scripts are included)
 - [ ] Tests pass locally
 

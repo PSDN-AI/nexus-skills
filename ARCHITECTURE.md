@@ -91,14 +91,4 @@ No package manager, no git submodules. Git + URL is the distribution mechanism.
 
 ## Discovery
 
-`catalog.yaml` in nexus-skills serves as the machine-readable registry:
-
-```yaml
-skills:
-  - name: repo-public-readiness
-    version: 1.0.0
-    description: "Scan a repo for secrets, quality issues, missing docs, and compliance problems"
-    path: skills/repo-public-readiness
-```
-
-AI Agents or tooling can fetch `catalog.yaml` to discover available Skills, then load individual `SKILL.md` files as needed.
+Agent products discover Skills by scanning the `skills/` directory for `SKILL.md` files. Each `SKILL.md` contains YAML frontmatter with `name` and `description` fields that agents parse at startup for discovery.
