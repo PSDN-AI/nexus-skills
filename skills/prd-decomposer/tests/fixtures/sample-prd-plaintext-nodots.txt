@@ -1,0 +1,14 @@
+1 Overview
+This document describes a task management application.
+
+2 Frontend
+Build a React UI with a Kanban board and drag-and-drop.
+Use CSS grid for responsive layout.
+
+3 Backend
+REST API: POST /api/v1/tasks to create tasks.
+PostgreSQL database for task storage.
+
+4 Security
+Implement JWT authentication for all API endpoints.
+Add role-based access control for admin users.
