@@ -348,7 +348,7 @@ test_plaintext_nodots() {
   meta=$(cat "$tmpdir/output/meta.yaml")
   assert_contains "$meta" "total_sections: 4" "plaintext nodots PRD finds all 4 sections"
   assert_contains "$output" "frontend/" "plaintext nodots PRD identifies frontend"
-  assert_contains "$output" "security/" "plaintext nodots PRD identifies security"
+  assert_contains "$output" "backend/" "plaintext nodots PRD identifies backend"
 }
 
 # ============================================================
