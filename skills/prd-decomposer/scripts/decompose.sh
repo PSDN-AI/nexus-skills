@@ -120,7 +120,13 @@ if [[ ! -f "$TAXONOMY_FILE" ]]; then
 fi
 
 # --- Setup ---
-TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+# Support SOURCE_DATE_EPOCH for reproducible output (see reproducible-builds.org)
+if [[ -n "${SOURCE_DATE_EPOCH:-}" ]]; then
+  TIMESTAMP=$(date -u -d "@${SOURCE_DATE_EPOCH}" '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null \
+    || date -u -r "${SOURCE_DATE_EPOCH}" '+%Y-%m-%dT%H:%M:%SZ')
+else
+  TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+fi
 PRD_TITLE=$(extract_prd_title "$PRD_PATH")
 PRD_FILENAME=$(basename "$PRD_PATH")
 TMPDIR_WORK=$(mktemp -d)
@@ -222,10 +228,26 @@ fi
 # ============================================================
 log "Phase 3-5: Generating output..."
 
-# Create output directory
+# Create output directory (with safety checks)
 if [[ -d "$OUTPUT_DIR" ]]; then
-  log "  Output directory exists, cleaning: ${OUTPUT_DIR}"
-  rm -rf "$OUTPUT_DIR"
+  # Resolve to absolute for safety check
+  _resolved_dir=$(cd "$OUTPUT_DIR" && pwd)
+  # Block dangerous paths: filesystem root or user home
+  if [[ "$_resolved_dir" == "/" || "$_resolved_dir" == "$HOME" ]]; then
+    echo "Error: Refusing to overwrite dangerous path: ${_resolved_dir}" >&2
+    exit 1
+  fi
+  # Only auto-clean directories that look like previous decomposer output
+  if [[ -f "${OUTPUT_DIR}/meta.yaml" ]]; then
+    log "  Output directory is previous decomposer output, cleaning: ${OUTPUT_DIR}"
+    rm -rf "$OUTPUT_DIR"
+  elif [[ -z "$(ls -A "$OUTPUT_DIR" 2>/dev/null)" ]]; then
+    log "  Output directory is empty, reusing: ${OUTPUT_DIR}"
+  else
+    echo "Error: Output directory exists and is not a previous decomposer output: ${OUTPUT_DIR}" >&2
+    echo "  Remove it manually or choose a different --output path." >&2
+    exit 1
+  fi
 fi
 mkdir -p "$OUTPUT_DIR"
 
