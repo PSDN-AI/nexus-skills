@@ -19,6 +19,7 @@ parse_sections() {
   local -a heading_texts=()
   local line_num=0
   local in_code_block=false
+  local found_markdown_heading=false
 
   while IFS= read -r line || [[ -n "$line" ]]; do
     line_num=$((line_num + 1))
@@ -43,12 +44,13 @@ parse_sections() {
       heading_lines+=("$line_num")
       heading_levels+=("$level")
       heading_texts+=("$text")
+      found_markdown_heading=true
     # Detect numbered sections for plain text: 1. Title, 1.2 Title
-    elif [[ "$line" =~ ^[0-9]+(\.[0-9]+)*\.?[[:space:]]+(.*) && ${#heading_lines[@]} -eq 0 ]]; then
-      # Only use numbered detection if no Markdown headings found yet
+    elif [[ "$line" =~ ^[0-9]+(\.[0-9]+)*\.?[[:space:]]+(.*) && "$found_markdown_heading" == "false" ]]; then
+      # Only use numbered detection if no Markdown headings found
       local text="${BASH_REMATCH[2]}"
       local dots
-      dots=$(echo "$line" | grep -o '\.' | wc -l | tr -d ' ')
+      dots=$(echo "$line" | grep -o '\.' | wc -l | tr -d ' ' || true)
       local level=$((dots + 1))
       [[ $level -gt 4 ]] && level=4
       heading_lines+=("$line_num")
