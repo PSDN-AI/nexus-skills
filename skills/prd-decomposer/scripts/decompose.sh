@@ -28,7 +28,6 @@ source "$SCRIPT_DIR/lib/generator.sh"
 # --- Defaults ---
 OUTPUT_DIR="./prd-output"
 TAXONOMY_FILE="${SKILL_DIR}/references/domain-taxonomy.yaml"
-OUTPUT_FORMAT="folder"
 DRY_RUN=false
 VERBOSE=false
 PRD_PATH=""
@@ -46,7 +45,6 @@ Arguments:
 Options:
   -o, --output DIR      Output directory (default: ./prd-output)
   -t, --taxonomy FILE   Custom domain taxonomy YAML
-  --output-format FMT   Output format: folder, json (default: folder)
   --dry-run             Parse & classify only, print summary
   -v, --verbose         Show detailed processing info
   --version             Print version and exit
@@ -70,10 +68,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     -t|--taxonomy)
       TAXONOMY_FILE="${2:?--taxonomy requires a file path}"
-      shift 2
-      ;;
-    --output-format)
-      OUTPUT_FORMAT="${2:?--output-format requires a value}"
       shift 2
       ;;
     --dry-run)
@@ -123,11 +117,6 @@ PRD_PATH=$(cd "$(dirname "$PRD_PATH")" && pwd)/$(basename "$PRD_PATH")
 if [[ ! -f "$TAXONOMY_FILE" ]]; then
   echo "Error: Taxonomy file not found: ${TAXONOMY_FILE}" >&2
   exit 3
-fi
-
-if [[ "$OUTPUT_FORMAT" != "folder" && "$OUTPUT_FORMAT" != "json" ]]; then
-  echo "Error: Invalid output format: ${OUTPUT_FORMAT}. Use 'folder' or 'json'." >&2
-  exit 1
 fi
 
 # --- Setup ---

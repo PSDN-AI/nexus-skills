@@ -37,7 +37,6 @@ Read skills/prd-decomposer/SKILL.md and decompose docs/prd.md
 | `prd-path` | Yes | — | Path to the PRD file (`.md` or `.txt`) |
 | `output-path` | No | `./prd-output` | Output directory for decomposed specs |
 | `taxonomy` | No | — | Path to custom domain taxonomy YAML |
-| `output-format` | No | `folder` | Output format: `folder` or `json` |
 
 **Outputs:**
 

@@ -13,10 +13,6 @@ inputs:
   taxonomy:
     description: "Path to custom domain taxonomy YAML"
     required: false
-  output-format:
-    description: "Output format: folder or json"
-    required: false
-    default: "folder"
 
 outputs:
   status:
@@ -42,8 +38,7 @@ runs:
         OUTPUT=$("${{ github.action_path }}/scripts/decompose.sh" \
           "${{ inputs.prd-path }}" \
           --output "${{ inputs.output-path }}" \
-          ${{ inputs.taxonomy && format('--taxonomy {0}', inputs.taxonomy) || '' }} \
-          --output-format "${{ inputs.output-format }}" 2>&1) || true
+          ${{ inputs.taxonomy && format('--taxonomy {0}', inputs.taxonomy) || '' }} 2>&1) || true
 
         echo "$OUTPUT"
 

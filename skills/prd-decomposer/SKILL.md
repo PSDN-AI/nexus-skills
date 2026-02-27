@@ -47,7 +47,7 @@ metadata:
 
 **Optional** (enhanced output when available):
 - `yq` — structured YAML generation (falls back to echo-based YAML without it)
-- `jq` — required for `--output-format json`
+- `jq` — JSON processing (used for structured validation when available)
 
 ## Quick Start
 
@@ -102,7 +102,7 @@ For each section, score it against the domain taxonomy:
 5. If a section scores above 60% of its top score in a second domain, flag it as having a cross-domain reference.
 6. If no domain scores above 0, assign to `uncategorized`.
 
-See [references/domain-taxonomy.yaml](references/domain-taxonomy.yaml) for the default domain definitions and keywords.
+See [domain-taxonomy.yaml](https://github.com/PSDN-AI/nexus-skills/blob/main/skills/prd-decomposer/references/domain-taxonomy.yaml) for the default domain definitions and keywords.
 
 ### Phase 3: EXTRACT
 
@@ -140,7 +140,7 @@ Self-check the decomposition:
 
 ## Domain Taxonomy
 
-The default taxonomy defines seven domains. See [references/domain-taxonomy.yaml](references/domain-taxonomy.yaml) for the full keyword list.
+The default taxonomy defines seven domains. See [domain-taxonomy.yaml](https://github.com/PSDN-AI/nexus-skills/blob/main/skills/prd-decomposer/references/domain-taxonomy.yaml) for the full keyword list.
 
 | Domain | Aliases | Focus |
 |--------|---------|-------|
@@ -156,7 +156,7 @@ Users can override the taxonomy with `--taxonomy /path/to/custom.yaml`.
 
 ## Output Structure
 
-See [references/output-schema.md](references/output-schema.md) for the detailed output format specification.
+See [output-schema.md](https://github.com/PSDN-AI/nexus-skills/blob/main/skills/prd-decomposer/references/output-schema.md) for the detailed output format specification.
 
 The decomposer generates this folder structure:
 
