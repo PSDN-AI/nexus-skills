@@ -6,27 +6,17 @@ A curated marketplace of reusable AI Agent Skills for Infrastructure, DevOps, an
 
 ## How Skills Work
 
-Every Skill can be consumed at three layers:
+Every Skill can be consumed in three ways:
 
-```
-+----------------------------------------------------+
-|  Layer 3: CI/CD (GitHub Actions)                   |
-|  uses: PSDN-AI/nexus-skills/skills/...@v0.0.1      |
-|  -> Automated pipeline integration via action.yml  |
-+----------------------------------------------------+
-|  Layer 2: CLI (Bash Scripts)                       |
-|  ./scripts/run_scan.sh /path/to/repo               |
-|  -> Direct execution by humans or agents           |
-+----------------------------------------------------+
-|  Layer 1: AI Knowledge (SKILL.md)                  |
-|  AI reads instructions -> understands task -> acts |
-|  -> Any AI agent can consume this, vendor-neutral  |
-+----------------------------------------------------+
-```
+| Method | How it works |
+|--------|-------------|
+| **Claude Code** | Install via plugin marketplace, then ask the agent to run the skill |
+| **CLI** | Run bash scripts directly from the terminal |
+| **GitHub Actions** | Add to CI/CD pipelines via `action.yml` |
 
 ## Prerequisites
 
-- **bash 4.0+** — required for CLI and CI layers (the scanner uses associative arrays)
+- **bash 4.0+** — required for CLI and GitHub Actions (scripts use associative arrays)
   - macOS ships bash 3.2; upgrade with `brew install bash`
   - Linux (Ubuntu, Debian, etc.) ships bash 5.x — no action needed
   - CI (GitHub Actions `ubuntu-latest`) — no action needed
@@ -35,30 +25,22 @@ Every Skill can be consumed at three layers:
 
 ## Quick Start
 
-### Claude Code (Plugin Marketplace)
+### Claude Code
 
 ```bash
 /plugin marketplace add PSDN-AI/nexus-skills
 ```
 
-### Layer 2: CLI
+### CLI
 
 ```bash
 git clone https://github.com/PSDN-AI/nexus-skills.git
 ```
 
-### Layer 3: GitHub Actions
+### GitHub Actions
 
 ```yaml
 - uses: PSDN-AI/nexus-skills/skills/<skill-name>@v0.0.1
-```
-
-### Layer 1: AI Agent
-
-Point any AI agent (Claude Code, GPT, etc.) to a SKILL.md:
-
-```
-Read skills/<skill-name>/SKILL.md and follow the instructions.
 ```
 
 ## Available Skills
