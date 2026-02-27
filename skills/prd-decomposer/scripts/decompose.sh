@@ -18,11 +18,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # --- Source library modules ---
-# shellcheck source=lib/parser.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/parser.sh"
-# shellcheck source=lib/classifier.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/classifier.sh"
-# shellcheck source=lib/generator.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/generator.sh"
 
 # --- Defaults ---
@@ -128,6 +128,7 @@ else
   TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 fi
 PRD_TITLE=$(extract_prd_title "$PRD_PATH")
+export TIMESTAMP PRD_TITLE
 PRD_FILENAME=$(basename "$PRD_PATH")
 TMPDIR_WORK=$(mktemp -d)
 trap 'rm -rf "$TMPDIR_WORK"' EXIT

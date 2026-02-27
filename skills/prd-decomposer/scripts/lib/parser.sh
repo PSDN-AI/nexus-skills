@@ -82,8 +82,8 @@ parse_sections() {
       end="$total_lines"
     fi
 
-    # Clean heading text: remove trailing whitespace and special chars
-    text=$(echo "$text" | sed 's/[[:space:]]*$//')
+    # Clean heading text: remove trailing whitespace
+    text="${text%"${text##*[![:space:]]}"}"
 
     echo "${level}|${text}|${start}|${end}" >> "$output_file"
   done

@@ -26,7 +26,6 @@ generate_domain_spec() {
   # Collect source section headings
   local source_sections=""
   local requirements=""
-  local technical=""
 
   while IFS='|' read -r _level heading start end sec_domain _score _words _cross; do
     [[ "$sec_domain" != "$domain" ]] && continue
