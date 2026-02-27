@@ -243,18 +243,20 @@ test_idempotency() {
   tmpdir2=$(mktemp -d)
   trap "rm -rf '$tmpdir1' '$tmpdir2'" RETURN
 
+  # Pin timestamp via SOURCE_DATE_EPOCH so output is fully deterministic
+  export SOURCE_DATE_EPOCH=0
   "$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-simple.md" --output "$tmpdir1/output" > /dev/null 2>&1
   "$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-simple.md" --output "$tmpdir2/output" > /dev/null 2>&1
+  unset SOURCE_DATE_EPOCH
 
-  # Compare directory structures (file names only, not timestamps)
-  local files1 files2
-  files1=$(cd "$tmpdir1/output" && find . -type f | sort)
-  files2=$(cd "$tmpdir2/output" && find . -type f | sort)
+  # Compare full file contents, not just file names
+  local diff_output
+  diff_output=$(diff -r "$tmpdir1/output" "$tmpdir2/output" 2>&1) || true
 
-  if [[ "$files1" == "$files2" ]]; then
-    _pass "idempotency: same file structure on two runs"
+  if [[ -z "$diff_output" ]]; then
+    _pass "idempotency: identical output on two runs"
   else
-    _fail "idempotency: different file structures" "run1: $files1 | run2: $files2"
+    _fail "idempotency: output differs between runs" "$diff_output"
   fi
 }
 
@@ -308,6 +310,109 @@ test_boundary_acceptance_criteria() {
 }
 
 # ============================================================
+# Test: Plain text PRD with dotted numbered headings (1. 2. 2.1)
+# ============================================================
+test_plaintext_dotted() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap "rm -rf '$tmpdir'" RETURN
+
+  local output
+  output=$("$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-plaintext.txt" --output "$tmpdir/output" 2>&1)
+
+  assert_contains "$output" "PRD Decomposition Complete" "plaintext dotted PRD reports completion"
+
+  # Must detect all 5 sections (1., 2., 2.1, 3., 4.) — not just the first
+  local meta
+  meta=$(cat "$tmpdir/output/meta.yaml")
+  assert_contains "$meta" "total_sections: 5" "plaintext dotted PRD finds all 5 sections"
+  assert_contains "$output" "frontend/" "plaintext dotted PRD identifies frontend"
+  assert_contains "$output" "backend/" "plaintext dotted PRD identifies backend"
+}
+
+# ============================================================
+# Test: Plain text PRD with dotless numbered headings (1 2 3)
+# ============================================================
+test_plaintext_nodots() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap "rm -rf '$tmpdir'" RETURN
+
+  local output
+  output=$("$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-plaintext-nodots.txt" --output "$tmpdir/output" 2>&1)
+
+  assert_contains "$output" "PRD Decomposition Complete" "plaintext nodots PRD reports completion"
+
+  # Must detect all 4 sections and not crash on dotless titles
+  local meta
+  meta=$(cat "$tmpdir/output/meta.yaml")
+  assert_contains "$meta" "total_sections: 4" "plaintext nodots PRD finds all 4 sections"
+  assert_contains "$output" "frontend/" "plaintext nodots PRD identifies frontend"
+  assert_contains "$output" "security/" "plaintext nodots PRD identifies security"
+}
+
+# ============================================================
+# Test: Output dir safety — refuse to overwrite non-decomposer dir
+# ============================================================
+test_output_dir_safety_nonempty() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap "rm -rf '$tmpdir'" RETURN
+
+  # Create a non-decomposer directory with existing data
+  mkdir -p "$tmpdir/existing"
+  echo "important data" > "$tmpdir/existing/myfile.txt"
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-simple.md" --output "$tmpdir/existing" 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 1 "output dir safety rejects non-decomposer dir"
+  assert_contains "$output" "not a previous decomposer output" "output dir safety shows reason"
+
+  # Verify existing data was NOT deleted
+  if [[ -f "$tmpdir/existing/myfile.txt" ]]; then
+    _pass "output dir safety preserves existing files"
+  else
+    _fail "output dir safety preserves existing files" "file was deleted"
+  fi
+}
+
+# ============================================================
+# Test: Output dir safety — refuse dangerous paths
+# ============================================================
+test_output_dir_safety_dangerous() {
+  local exit_code=0
+  local output
+  output=$("$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-simple.md" --output "$HOME" 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 1 "output dir safety rejects HOME"
+  assert_contains "$output" "Refusing to overwrite dangerous path" "output dir safety shows dangerous path error"
+}
+
+# ============================================================
+# Test: Composite action propagates script failures
+# ============================================================
+test_action_failure_propagation() {
+  # Verify action.yml captures non-zero exit codes from decompose.sh
+  # We test indirectly: run decompose.sh with invalid input, confirm non-zero exit
+  local exit_code=0
+  "$BASH" "$DECOMPOSE" /nonexistent/path/prd.md --output /tmp/no-matter > /dev/null 2>&1 || exit_code=$?
+
+  if [[ "$exit_code" -ne 0 ]]; then
+    _pass "action failure propagation: script exits non-zero on bad input"
+  else
+    _fail "action failure propagation: script exits non-zero on bad input" "got exit code 0"
+  fi
+
+  # Verify action.yml wires EXIT_CODE correctly (static check)
+  local action_content
+  action_content=$(cat "$SKILL_DIR/action.yml")
+  assert_contains "$action_content" 'exit "$EXIT_CODE"' "action.yml propagates exit code"
+  assert_contains "$action_content" '|| EXIT_CODE=$?' "action.yml captures script exit code"
+}
+
+# ============================================================
 # Run all tests
 # ============================================================
 echo ">> prd-decomposer integration tests"
@@ -325,5 +430,10 @@ test_idempotency
 test_extracted_markers
 test_config_fields
 test_boundary_acceptance_criteria
+test_plaintext_dotted
+test_plaintext_nodots
+test_output_dir_safety_nonempty
+test_output_dir_safety_dangerous
+test_action_failure_propagation
 
 print_summary
