@@ -140,7 +140,7 @@ test_no_arguments() {
 test_simple_prd() {
   local tmpdir
   tmpdir=$(mktemp -d)
-  trap "rm -rf '$tmpdir'" RETURN
+  trap 'rm -rf -- "$tmpdir"' RETURN
 
   local output
   output=$("$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-simple.md" --output "$tmpdir/output" 2>&1)
@@ -176,7 +176,7 @@ test_simple_prd() {
 test_complex_prd() {
   local tmpdir
   tmpdir=$(mktemp -d)
-  trap "rm -rf '$tmpdir'" RETURN
+  trap 'rm -rf -- "$tmpdir"' RETURN
 
   local output
   output=$("$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-complex.md" --output "$tmpdir/output" 2>&1)
@@ -203,7 +203,7 @@ test_complex_prd() {
 test_minimal_prd() {
   local tmpdir
   tmpdir=$(mktemp -d)
-  trap "rm -rf '$tmpdir'" RETURN
+  trap 'rm -rf -- "$tmpdir"' RETURN
 
   local output
   output=$("$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-minimal.md" --output "$tmpdir/output" 2>&1)
@@ -241,7 +241,7 @@ test_idempotency() {
   local tmpdir1 tmpdir2
   tmpdir1=$(mktemp -d)
   tmpdir2=$(mktemp -d)
-  trap "rm -rf '$tmpdir1' '$tmpdir2'" RETURN
+  trap 'rm -rf -- "$tmpdir1" "$tmpdir2"' RETURN
 
   # Pin timestamp via SOURCE_DATE_EPOCH so output is fully deterministic
   export SOURCE_DATE_EPOCH=0
@@ -266,7 +266,7 @@ test_idempotency() {
 test_extracted_markers() {
   local tmpdir
   tmpdir=$(mktemp -d)
-  trap "rm -rf '$tmpdir'" RETURN
+  trap 'rm -rf -- "$tmpdir"' RETURN
 
   "$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-simple.md" --output "$tmpdir/output" > /dev/null 2>&1
 
@@ -282,7 +282,7 @@ test_extracted_markers() {
 test_config_fields() {
   local tmpdir
   tmpdir=$(mktemp -d)
-  trap "rm -rf '$tmpdir'" RETURN
+  trap 'rm -rf -- "$tmpdir"' RETURN
 
   "$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-simple.md" --output "$tmpdir/output" > /dev/null 2>&1
 
@@ -299,7 +299,7 @@ test_config_fields() {
 test_boundary_acceptance_criteria() {
   local tmpdir
   tmpdir=$(mktemp -d)
-  trap "rm -rf '$tmpdir'" RETURN
+  trap 'rm -rf -- "$tmpdir"' RETURN
 
   "$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-complex.md" --output "$tmpdir/output" > /dev/null 2>&1
 
@@ -315,7 +315,7 @@ test_boundary_acceptance_criteria() {
 test_plaintext_dotted() {
   local tmpdir
   tmpdir=$(mktemp -d)
-  trap "rm -rf '$tmpdir'" RETURN
+  trap 'rm -rf -- "$tmpdir"' RETURN
 
   local output
   output=$("$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-plaintext.txt" --output "$tmpdir/output" 2>&1)
@@ -336,7 +336,7 @@ test_plaintext_dotted() {
 test_plaintext_nodots() {
   local tmpdir
   tmpdir=$(mktemp -d)
-  trap "rm -rf '$tmpdir'" RETURN
+  trap 'rm -rf -- "$tmpdir"' RETURN
 
   local output
   output=$("$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-plaintext-nodots.txt" --output "$tmpdir/output" 2>&1)
@@ -357,7 +357,7 @@ test_plaintext_nodots() {
 test_output_dir_safety_nonempty() {
   local tmpdir
   tmpdir=$(mktemp -d)
-  trap "rm -rf '$tmpdir'" RETURN
+  trap 'rm -rf -- "$tmpdir"' RETURN
 
   # Create a non-decomposer directory with existing data
   mkdir -p "$tmpdir/existing"
