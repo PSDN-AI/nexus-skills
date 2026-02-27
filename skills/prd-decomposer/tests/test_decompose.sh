@@ -352,6 +352,32 @@ test_plaintext_nodots() {
 }
 
 # ============================================================
+# Test: Web3 PRD decomposition
+# ============================================================
+test_web3_prd() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  local output
+  output=$("$BASH" "$DECOMPOSE" "$FIXTURES/sample-prd-web3.md" --output "$tmpdir/output" 2>&1)
+
+  assert_contains "$output" "PRD Decomposition Complete" "web3 PRD reports completion"
+  assert_contains "$output" "web3/" "web3 PRD identifies web3 domain"
+  assert_contains "$output" "frontend/" "web3 PRD identifies frontend domain"
+
+  assert_dir_exists "$tmpdir/output/web3" "web3 PRD creates web3 dir"
+  assert_file_exists "$tmpdir/output/web3/spec.md" "web3 PRD creates web3 spec"
+  assert_file_exists "$tmpdir/output/web3/boundary.yaml" "web3 PRD creates web3 boundary"
+  assert_file_exists "$tmpdir/output/web3/config.yaml" "web3 PRD creates web3 config"
+
+  # Verify web3 spec references smart contract content
+  local spec
+  spec=$(cat "$tmpdir/output/web3/spec.md")
+  assert_contains "$spec" "Solidity" "web3 spec contains Solidity keyword"
+}
+
+# ============================================================
 # Test: Output dir safety — refuse to overwrite non-decomposer dir
 # ============================================================
 test_output_dir_safety_nonempty() {
@@ -432,6 +458,7 @@ test_config_fields
 test_boundary_acceptance_criteria
 test_plaintext_dotted
 test_plaintext_nodots
+test_web3_prd
 test_output_dir_safety_nonempty
 test_output_dir_safety_dangerous
 test_action_failure_propagation

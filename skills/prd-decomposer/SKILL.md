@@ -1,6 +1,6 @@
 ---
 name: prd-decomposer
-description: "Decomposes a Product Requirements Document (PRD) into domain-specific specs for AI Agent consumption. Use when given a PRD, product spec, or technical design document that needs to be broken down into frontend, backend, infra, devops, security, or other domain folders. Each output folder contains a self-contained spec, boundary conditions, and agent configuration. Supports Markdown and plain text PRDs. Do NOT use for code review, repo scanning, or non-document tasks."
+description: "Decomposes a Product Requirements Document (PRD) into domain-specific specs for AI Agent consumption. Use when given a PRD, product spec, or technical design document that needs to be broken down into frontend, backend, infra, devops, security, web3, or other domain folders. Each output folder contains a self-contained spec, boundary conditions, and agent configuration. Supports Markdown and plain text PRDs. Do NOT use for code review, repo scanning, or non-document tasks."
 license: MIT
 compatibility: "Requires bash 4.0+, grep, sed, awk, find, sort, wc. Optional: yq (YAML processing), jq (JSON output)."
 metadata:
@@ -147,7 +147,7 @@ Self-check the decomposition:
 
 ## Domain Taxonomy
 
-The default taxonomy defines seven domains. See [domain-taxonomy.yaml](https://github.com/PSDN-AI/nexus-skills/blob/main/skills/prd-decomposer/references/domain-taxonomy.yaml) for the full keyword list.
+The default taxonomy defines eight domains. See [domain-taxonomy.yaml](https://github.com/PSDN-AI/nexus-skills/blob/main/skills/prd-decomposer/references/domain-taxonomy.yaml) for the full keyword list.
 
 | Domain | Aliases | Focus |
 |--------|---------|-------|
@@ -157,6 +157,7 @@ The default taxonomy defines seven domains. See [domain-taxonomy.yaml](https://g
 | `devops` | cicd, pipeline, deployment | CI/CD, monitoring, alerting, deployment strategies |
 | `security` | sec, compliance, audit | Encryption, auth hardening, compliance, WAF |
 | `data` | ml, ai, analytics, data-eng | Data pipelines, ML models, analytics, warehousing |
+| `web3` | blockchain, crypto, smart-contract, onchain | Smart contracts, DeFi, NFTs, L2s, wallets, on-chain governance |
 | `shared` | common, cross-cutting | Shared types, API schemas, protobuf, error codes |
 
 Users can override the taxonomy with `--taxonomy /path/to/custom.yaml`.
