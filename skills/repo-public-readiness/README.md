@@ -25,7 +25,7 @@ Scan this repository for public readiness issues
 ## GitHub Actions
 
 ```yaml
-- uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v0.0.1
+- uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@main
   id: scan
   with:
     repo_path: "."

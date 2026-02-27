@@ -25,7 +25,7 @@ Read skills/prd-decomposer/SKILL.md and decompose docs/prd.md
 ## GitHub Actions
 
 ```yaml
-- uses: PSDN-AI/nexus-skills/skills/prd-decomposer@v0.0.1
+- uses: PSDN-AI/nexus-skills/skills/prd-decomposer@main
   with:
     prd-path: "docs/prd.md"
 ```

@@ -40,7 +40,7 @@ git clone https://github.com/PSDN-AI/nexus-skills.git
 ### GitHub Actions
 
 ```yaml
-- uses: PSDN-AI/nexus-skills/skills/<skill-name>@v0.0.1
+- uses: PSDN-AI/nexus-skills/skills/<skill-name>@main
 ```
 
 ## Available Skills
