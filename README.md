@@ -39,53 +39,76 @@ Every Skill can be consumed at three layers:
 
 ```bash
 /plugin marketplace add PSDN-AI/nexus-skills
-/plugin install repo-public-readiness@nexus-skills
 ```
 
 ### Layer 2: CLI
 
 ```bash
 git clone https://github.com/PSDN-AI/nexus-skills.git
-./nexus-skills/skills/repo-public-readiness/scripts/run_scan.sh /path/to/your/repo
-```
-
-Save the report:
-
-```bash
-./nexus-skills/skills/repo-public-readiness/scripts/run_scan.sh /path/to/your/repo > report.md
 ```
 
 ### Layer 3: GitHub Actions
 
 ```yaml
-# .github/workflows/readiness.yml
-name: Repo Public Readiness
-on: [push, pull_request]
-jobs:
-  scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v0.0.1
-        id: scan
-      - run: echo "Status is ${{ steps.scan.outputs.status }}"
+- uses: PSDN-AI/nexus-skills/skills/<skill-name>@v0.0.1
 ```
 
 ### Layer 1: AI Agent
 
-Point any AI agent (Claude Code, GPT, etc.) to the SKILL.md:
+Point any AI agent (Claude Code, GPT, etc.) to a SKILL.md:
 
 ```
-Read skills/repo-public-readiness/SKILL.md and follow the instructions
-to scan this repository.
+Read skills/<skill-name>/SKILL.md and follow the instructions.
 ```
 
 ## Available Skills
 
-| Skill | Description | Complexity |
-|-------|-------------|------------|
-| [repo-public-readiness](skills/repo-public-readiness/) | Scan a repo for secrets, quality issues, missing docs, and compliance problems before going public | Intermediate |
-| [prd-decomposer](skills/prd-decomposer/) | Decompose a PRD into domain-specific specs (frontend, backend, infra, etc.) for AI Agent consumption | Intermediate |
+### repo-public-readiness
+
+Scan a repo for secrets, quality issues, missing docs, and compliance problems before going public.
+
+```bash
+# Claude Code — install & run
+/plugin install repo-public-readiness@nexus-skills
+Scan this repository for public readiness issues
+
+# CLI
+./skills/repo-public-readiness/scripts/run_scan.sh /path/to/repo
+
+# Save report to file
+./skills/repo-public-readiness/scripts/run_scan.sh /path/to/repo > report.md
+```
+
+```yaml
+# GitHub Actions
+- uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v0.0.1
+  id: scan
+  with:
+    repo_path: "."
+```
+
+### prd-decomposer
+
+Decompose a PRD into domain-specific specs (frontend, backend, infra, etc.) for AI Agent consumption.
+
+```bash
+# Claude Code — install & run
+/plugin install prd-decomposer@nexus-skills
+Read skills/prd-decomposer/SKILL.md and decompose docs/prd.md
+
+# CLI
+./skills/prd-decomposer/scripts/decompose.sh /path/to/prd.md
+
+# Dry run — preview classification without generating files
+./skills/prd-decomposer/scripts/decompose.sh /path/to/prd.md --dry-run
+```
+
+```yaml
+# GitHub Actions
+- uses: PSDN-AI/nexus-skills/skills/prd-decomposer@v0.0.1
+  with:
+    prd-path: "docs/prd.md"
+```
 
 ## Contributing
 
