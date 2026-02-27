@@ -6,6 +6,13 @@ compatibility: "Requires bash 4.0+, grep, sed, awk, find, sort, wc. Optional: yq
 metadata:
   author: PSDN-AI
   version: "0.1.0"
+  category: Product Engineering
+  tags:
+    - prd
+    - requirements
+    - decomposition
+    - architecture
+    - multi-agent
 ---
 
 # PRD Decomposer

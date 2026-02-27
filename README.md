@@ -45,10 +45,10 @@ git clone https://github.com/PSDN-AI/nexus-skills.git
 
 ## Available Skills
 
-| Skill | Description |
-|-------|-------------|
-| [repo-public-readiness](skills/repo-public-readiness/) | Scan for secrets, quality issues, and compliance problems before going public |
-| [prd-decomposer](skills/prd-decomposer/) | Decompose a PRD into domain-specific specs for AI Agent consumption |
+| Skill | Category | Description |
+|-------|----------|-------------|
+| [repo-public-readiness](skills/repo-public-readiness/) | Security & Compliance | Scan for secrets, quality issues, and compliance problems before going public |
+| [prd-decomposer](skills/prd-decomposer/) | Product Engineering | Decompose a PRD into domain-specific specs for AI Agent consumption |
 
 ## Contributing
 
