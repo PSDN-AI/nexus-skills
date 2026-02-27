@@ -35,19 +35,22 @@ runs:
       id: decompose
       shell: bash
       run: |
+        EXIT_CODE=0
         OUTPUT=$("${{ github.action_path }}/scripts/decompose.sh" \
           "${{ inputs.prd-path }}" \
           --output "${{ inputs.output-path }}" \
-          ${{ inputs.taxonomy && format('--taxonomy {0}', inputs.taxonomy) || '' }} 2>&1) || true
+          ${{ inputs.taxonomy && format('--taxonomy {0}', inputs.taxonomy) || '' }} 2>&1) || EXIT_CODE=$?
 
         echo "$OUTPUT"
 
-        # Extract status
-        if echo "$OUTPUT" | grep -q "PRD Decomposition Complete"; then
-          echo "status=success" >> "$GITHUB_OUTPUT"
-        else
+        # Fail the step on script error
+        if [[ "$EXIT_CODE" -ne 0 ]]; then
           echo "status=error" >> "$GITHUB_OUTPUT"
+          echo "::error::decompose.sh exited with code ${EXIT_CODE}"
+          exit "$EXIT_CODE"
         fi
+
+        echo "status=success" >> "$GITHUB_OUTPUT"
 
         # Extract domains from meta.yaml
         if [[ -f "${{ inputs.output-path }}/meta.yaml" ]]; then
