@@ -1,0 +1,234 @@
+domains:
+  - name: frontend
+    aliases: [fe, client, ui, web]
+    keywords:
+      - UI
+      - UX
+      - component
+      - page
+      - route
+      - CSS
+      - React
+      - Vue
+      - Angular
+      - responsive
+      - layout
+      - navigation
+      - form
+      - modal
+      - toast
+      - browser
+      - DOM
+      - state management
+      - Redux
+      - Zustand
+      - Tailwind
+      - Svelte
+      - Next.js
+      - Nuxt
+      - SPA
+      - SSR
+      - hydration
+      - client-side
+      - frontend
+      - front-end
+      - web app
+      - PWA
+      - intersection observer
+      - lazy load
+      - widget
+    file_patterns: ["*.tsx", "*.jsx", "*.css", "*.html", "*.vue", "*.svelte"]
+
+  - name: backend
+    aliases: [be, server, api]
+    keywords:
+      - API
+      - endpoint
+      - REST
+      - GraphQL
+      - gRPC
+      - service
+      - microservice
+      - database
+      - schema
+      - migration
+      - ORM
+      - query
+      - transaction
+      - authentication
+      - authorization
+      - JWT
+      - OAuth
+      - session
+      - queue
+      - worker
+      - cron
+      - background job
+      - webhook
+      - middleware
+      - controller
+      - model
+      - backend
+      - back-end
+      - server-side
+      - PostgreSQL
+      - MySQL
+      - MongoDB
+      - Redis
+      - cache
+      - TTL
+      - saga
+      - event-driven
+      - pub/sub
+      - message broker
+    file_patterns: ["*.py", "*.go", "*.rs", "*.java", "*.ts", "*.rb"]
+
+  - name: infra
+    aliases: [infrastructure, cloud, platform]
+    keywords:
+      - AWS
+      - GCP
+      - Azure
+      - cloud
+      - VPC
+      - subnet
+      - load balancer
+      - ALB
+      - NLB
+      - Kubernetes
+      - EKS
+      - GKE
+      - AKS
+      - Docker
+      - container
+      - pod
+      - Terraform
+      - Pulumi
+      - CDK
+      - CloudFormation
+      - S3
+      - RDS
+      - DynamoDB
+      - Elasticsearch
+      - networking
+      - DNS
+      - SSL
+      - certificate
+      - firewall
+      - CDN
+      - CloudFront
+      - node group
+      - autoscaling
+      - infrastructure
+      - IaC
+    file_patterns: ["*.tf", "*.yaml", "*.json", "*.hcl"]
+
+  - name: devops
+    aliases: [cicd, pipeline, deployment]
+    keywords:
+      - CI/CD
+      - pipeline
+      - GitHub Actions
+      - Jenkins
+      - ArgoCD
+      - deploy
+      - release
+      - rollback
+      - canary
+      - blue-green
+      - monitoring
+      - alerting
+      - logging
+      - Datadog
+      - Prometheus
+      - Grafana
+      - PagerDuty
+      - incident
+      - SLA
+      - SLO
+      - observability
+      - tracing
+      - metrics
+      - dashboard
+      - devops
+      - continuous integration
+      - continuous deployment
+      - build pipeline
+    file_patterns: [".github/workflows/*", "Dockerfile", "docker-compose*"]
+
+  - name: security
+    aliases: [sec, compliance, audit]
+    keywords:
+      - security
+      - encryption
+      - TLS
+      - mTLS
+      - RBAC
+      - IAM
+      - vulnerability
+      - CVE
+      - penetration test
+      - audit
+      - compliance
+      - SOC2
+      - GDPR
+      - HIPAA
+      - PCI-DSS
+      - secrets management
+      - Vault
+      - KMS
+      - WAF
+      - DDoS
+      - rate limiting
+      - CORS
+      - OWASP
+      - threat model
+      - access control
+      - zero trust
+    file_patterns: ["*.pem", "*.key", "security/*"]
+
+  - name: data
+    aliases: [ml, ai, analytics, data-eng]
+    keywords:
+      - data pipeline
+      - ETL
+      - ELT
+      - data warehouse
+      - data lake
+      - machine learning
+      - model training
+      - inference
+      - analytics
+      - KPI
+      - A/B test
+      - Spark
+      - Airflow
+      - dbt
+      - BigQuery
+      - Snowflake
+      - feature store
+      - data science
+      - prediction
+      - recommendation
+      - neural network
+      - deep learning
+    file_patterns: ["*.py", "*.sql", "*.ipynb"]
+
+  - name: shared
+    aliases: [common, cross-cutting]
+    keywords:
+      - shared types
+      - interface contract
+      - API schema
+      - proto
+      - protobuf
+      - OpenAPI
+      - swagger
+      - JSON schema
+      - error codes
+      - status codes
+      - common utilities
+      - shared library
+      - SDK
+      - client library
+    file_patterns: ["*.proto", "*.graphql", "openapi.*"]

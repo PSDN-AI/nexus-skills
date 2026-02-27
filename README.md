@@ -85,6 +85,7 @@ to scan this repository.
 | Skill | Description | Complexity |
 |-------|-------------|------------|
 | [repo-public-readiness](skills/repo-public-readiness/) | Scan a repo for secrets, quality issues, missing docs, and compliance problems before going public | Intermediate |
+| [prd-decomposer](skills/prd-decomposer/) | Decompose a PRD into domain-specific specs (frontend, backend, infra, etc.) for AI Agent consumption | Intermediate |
 
 ## Contributing
 
