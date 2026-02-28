@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
-# Pre-commit hook: runs shellcheck on staged .sh files
+# Pre-commit hook: runs shellcheck on staged bash scripts
+# Matches *.sh files and extensionless files with a bash/sh shebang.
 # Install: git config core.hooksPath .githooks
 
 set -euo pipefail
 
-# Get staged .sh files (NUL-delimited for path safety)
+is_bash_script() {
+    local first_line
+    first_line=$(git show ":$1" | head -n 1)
+    [[ "$first_line" == "#!/"*bash* || "$first_line" == "#!/"*"/sh" ]]
+}
+
+# Collect staged files: *.sh unconditionally, others if they have a bash shebang
 staged_files=()
 while IFS= read -r -d '' file; do
-    staged_files+=("$file")
-done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.sh')
+    if [[ "$file" == *.sh ]] || is_bash_script "$file"; then
+        staged_files+=("$file")
+    fi
+done < <(git diff --cached --name-only -z --diff-filter=ACMR)
 
 if [ ${#staged_files[@]} -eq 0 ]; then
     exit 0
