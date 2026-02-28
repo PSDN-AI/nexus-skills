@@ -8,6 +8,7 @@ All skills live in `skills/<skill-name>/` (lowercase kebab-case). Each skill mus
 Current skills:
 - `skills/repo-audit/` (repository readiness scanner)
 - `skills/prd-decompose/` (PRD decomposition workflow)
+- `skills/gha-create/` (GitHub Actions workflow generator and validator)
 
 Standard skill layout (recommended):
 - `scripts/` for executable workflows
@@ -60,6 +61,21 @@ PRs should include:
 - Problem statement (what real-world issue the change solves)
 - Summary of files changed
 - Validation evidence (commands run and key output)
+
+## Issue & PR Labeling Policy
+All issues and pull requests should be labeled. Apply labels when opening the item if you have permission; otherwise, list the intended labels in the description so a maintainer can apply them.
+
+Allowed labels:
+- Type labels (required on every issue and PR): `bug`, `enhancement`, `documentation`, `question`, `security`
+- Scope labels (use one when applicable): `new-skill`, `area:repo`, `area:ci`, `area:docs`
+- Skill labels (use one when a single skill is the primary subject): `skill:repo-audit`, `skill:prd-decompose`, `skill:gha-create`
+- Status labels (optional): `status:needs-review`, `status:blocked`
+
+Rules:
+- Every issue must have at least one type label.
+- Every pull request must have at least one type label and one scope or skill label.
+- New skill proposals and new skill pull requests must include `new-skill`.
+- Use exactly one `skill:<name>` label when the work primarily affects a single skill.
 
 ## Security & Configuration Tips
 Never commit secrets, private keys, or `.env` files.  
