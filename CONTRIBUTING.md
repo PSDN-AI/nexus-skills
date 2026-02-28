@@ -1,5 +1,13 @@
 # Contributing
 
+## Setup
+
+Enable the pre-commit hook to run shellcheck on staged bash scripts:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## Steps
 
 1. Fork the repository

@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+is_bash_script() {
+    local first_line
+    first_line=$(git show ":$1" | head -n 1)
+    [[ "$first_line" =~ ^#!.*[/[:space:]](bash|sh) ]]
+}
+
+staged_files=()
+while IFS= read -r -d '' file; do
+    if [[ "$file" == *.sh ]] || is_bash_script "$file"; then
+        staged_files+=("$file")
+    fi
+done < <(git diff --cached --name-only -z --diff-filter=ACMR)
+
+if [ ${#staged_files[@]} -eq 0 ]; then
+    exit 0
+fi
+
+if ! command -v shellcheck &>/dev/null; then
+    echo "WARNING: shellcheck not installed, skipping pre-commit check"
+    echo "Install: brew install shellcheck (macOS) or apt install shellcheck (Linux)"
+    exit 0
+fi
+
+errors=0
+for file in "${staged_files[@]}"; do
+    if ! git show ":$file" | shellcheck -f gcc -; then
+        echo "  ^ in staged content of $file"
+        errors=1
+    fi
+done
+
+if [ "$errors" -ne 0 ]; then
+    echo ""
+    echo "shellcheck found issues. Fix them before committing."
+    echo "To skip this check: git commit --no-verify"
+    exit 1
+fi
+
+hook_test_targets=$(git diff --cached --name-only --diff-filter=ACMR -- .githooks/pre-commit .githooks/tests)
+
+if [[ -n "$hook_test_targets" ]]; then
+    echo "Running git hook regression tests..."
+    if ! "$BASH" .githooks/tests/run_tests.sh; then
+        echo ""
+        echo "git hook regression tests failed. Fix them before committing."
+        echo "To skip this check: git commit --no-verify"
+        exit 1
+    fi
+fi
