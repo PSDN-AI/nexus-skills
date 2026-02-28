@@ -6,27 +6,17 @@ A curated marketplace of reusable AI Agent Skills for Infrastructure, DevOps, an
 
 ## How Skills Work
 
-Every Skill can be consumed at three layers:
+Every Skill can be consumed in three ways:
 
-```
-+----------------------------------------------------+
-|  Layer 3: CI/CD (GitHub Actions)                   |
-|  uses: PSDN-AI/nexus-skills/skills/...@v0.0.1      |
-|  -> Automated pipeline integration via action.yml  |
-+----------------------------------------------------+
-|  Layer 2: CLI (Bash Scripts)                       |
-|  ./scripts/run_scan.sh /path/to/repo               |
-|  -> Direct execution by humans or agents           |
-+----------------------------------------------------+
-|  Layer 1: AI Knowledge (SKILL.md)                  |
-|  AI reads instructions -> understands task -> acts |
-|  -> Any AI agent can consume this, vendor-neutral  |
-+----------------------------------------------------+
-```
+| Method | How it works |
+|--------|-------------|
+| **Claude Code** | Install via plugin marketplace, then ask the agent to run the skill |
+| **CLI** | Run bash scripts directly from the terminal |
+| **GitHub Actions** | Add to CI/CD pipelines via `action.yml` |
 
 ## Prerequisites
 
-- **bash 4.0+** — required for CLI and CI layers (the scanner uses associative arrays)
+- **bash 4.0+** — required for CLI and GitHub Actions (scripts use associative arrays)
   - macOS ships bash 3.2; upgrade with `brew install bash`
   - Linux (Ubuntu, Debian, etc.) ships bash 5.x — no action needed
   - CI (GitHub Actions `ubuntu-latest`) — no action needed
@@ -35,56 +25,30 @@ Every Skill can be consumed at three layers:
 
 ## Quick Start
 
-### Claude Code (Plugin Marketplace)
+### Claude Code
 
 ```bash
 /plugin marketplace add PSDN-AI/nexus-skills
-/plugin install repo-public-readiness@nexus-skills
 ```
 
-### Layer 2: CLI
+### CLI
 
 ```bash
 git clone https://github.com/PSDN-AI/nexus-skills.git
-./nexus-skills/skills/repo-public-readiness/scripts/run_scan.sh /path/to/your/repo
 ```
 
-Save the report:
-
-```bash
-./nexus-skills/skills/repo-public-readiness/scripts/run_scan.sh /path/to/your/repo > report.md
-```
-
-### Layer 3: GitHub Actions
+### GitHub Actions
 
 ```yaml
-# .github/workflows/readiness.yml
-name: Repo Public Readiness
-on: [push, pull_request]
-jobs:
-  scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v0.0.1
-        id: scan
-      - run: echo "Status is ${{ steps.scan.outputs.status }}"
-```
-
-### Layer 1: AI Agent
-
-Point any AI agent (Claude Code, GPT, etc.) to the SKILL.md:
-
-```
-Read skills/repo-public-readiness/SKILL.md and follow the instructions
-to scan this repository.
+- uses: PSDN-AI/nexus-skills/skills/<skill-name>@main
 ```
 
 ## Available Skills
 
-| Skill | Description | Complexity |
-|-------|-------------|------------|
-| [repo-public-readiness](skills/repo-public-readiness/) | Scan a repo for secrets, quality issues, missing docs, and compliance problems before going public | Intermediate |
+| Skill | Category | Description |
+|-------|----------|-------------|
+| [repo-public-readiness](skills/repo-public-readiness/) | Security & Compliance | Scan for secrets, quality issues, and compliance problems before going public |
+| [prd-decomposer](skills/prd-decomposer/) | Product Engineering | Decompose a PRD into domain-specific specs for AI Agent consumption |
 
 ## Contributing
 

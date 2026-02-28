@@ -1,0 +1,76 @@
+name: "PRD Decomposer"
+description: "Decompose a PRD into domain-specific specs for AI Agent consumption"
+author: "PSDN-AI"
+
+inputs:
+  prd-path:
+    description: "Path to the PRD file (.md or .txt)"
+    required: true
+  output-path:
+    description: "Output directory for decomposed specs"
+    required: false
+    default: "./prd-output"
+  taxonomy:
+    description: "Path to custom domain taxonomy YAML"
+    required: false
+
+outputs:
+  status:
+    description: "Decomposition status: success, warning, or error"
+    value: ${{ steps.decompose.outputs.status }}
+  domains:
+    description: "Comma-separated list of identified domains"
+    value: ${{ steps.decompose.outputs.domains }}
+  coverage:
+    description: "PRD coverage percentage"
+    value: ${{ steps.decompose.outputs.coverage }}
+  warnings:
+    description: "Number of warnings generated"
+    value: ${{ steps.decompose.outputs.warnings }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run PRD Decomposer
+      id: decompose
+      shell: bash
+      run: |
+        EXIT_CODE=0
+        OUTPUT=$("${{ github.action_path }}/scripts/decompose.sh" \
+          "${{ inputs.prd-path }}" \
+          --output "${{ inputs.output-path }}" \
+          ${{ inputs.taxonomy && format('--taxonomy {0}', inputs.taxonomy) || '' }} 2>&1) || EXIT_CODE=$?
+
+        echo "$OUTPUT"
+
+        # Fail the step on script error
+        if [[ "$EXIT_CODE" -ne 0 ]]; then
+          echo "status=error" >> "$GITHUB_OUTPUT"
+          echo "::error::decompose.sh exited with code ${EXIT_CODE}"
+          exit "$EXIT_CODE"
+        fi
+
+        echo "status=success" >> "$GITHUB_OUTPUT"
+
+        # Extract domains from meta.yaml
+        if [[ -f "${{ inputs.output-path }}/meta.yaml" ]]; then
+          DOMAINS=$(grep "domains_identified:" "${{ inputs.output-path }}/meta.yaml" | sed 's/.*\[//;s/\].*//')
+          echo "domains=$DOMAINS" >> "$GITHUB_OUTPUT"
+
+          COVERAGE=$(grep "coverage_percent:" "${{ inputs.output-path }}/meta.yaml" | awk '{print $2}')
+          echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
+        fi
+
+        # Count warnings
+        WARNING_COUNT=$(echo "$OUTPUT" | grep -c "⚠️" || echo "0")
+        echo "warnings=$WARNING_COUNT" >> "$GITHUB_OUTPUT"
+
+    - name: Display summary
+      shell: bash
+      run: |
+        echo "## PRD Decomposition Results" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Status**: ${{ steps.decompose.outputs.status }}" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Domains**: ${{ steps.decompose.outputs.domains }}" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Coverage**: ${{ steps.decompose.outputs.coverage }}%" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Warnings**: ${{ steps.decompose.outputs.warnings }}" >> "$GITHUB_STEP_SUMMARY"

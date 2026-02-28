@@ -1,0 +1,17 @@
+1. Overview
+This document describes a web application with frontend and backend components.
+
+2. Frontend
+Build a React dashboard with charts and data tables.
+Use Tailwind CSS for responsive layout.
+
+2.1 Navigation
+Add sidebar navigation with route-based highlighting.
+
+3. Backend
+REST API: GET /api/v1/metrics to return dashboard data.
+PostgreSQL database for metrics storage.
+
+4. Deployment
+Deploy using Docker containers on Kubernetes.
+Set up CI/CD pipeline with GitHub Actions.
