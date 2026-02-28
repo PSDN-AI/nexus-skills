@@ -8,7 +8,7 @@ set -euo pipefail
 is_bash_script() {
     local first_line
     first_line=$(git show ":$1" | head -n 1)
-    [[ "$first_line" == "#!/"*bash* || "$first_line" == "#!/"*"/sh" ]]
+    [[ "$first_line" =~ ^#!.*[/[:space:]](bash|sh) ]]
 }
 
 # Collect staged files: *.sh unconditionally, others if they have a bash shebang
