@@ -158,6 +158,29 @@ assert_exit_code "$code" 0 "local action does not trigger S1"
 assert_not_contains "$output" "FAIL: S1" "no S1 failure for local action"
 rm -f "$tmpfile"
 
+# Docker image should not trigger S1
+tmpfile=$(make_workflow <<'YAML'
+name: test
+on: push
+permissions:
+  contents: read
+concurrency:
+  group: test
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker://alpine:3.19
+YAML
+)
+result=$(run_validator "$tmpfile")
+code="${result%%|*}"
+output="${result#*|}"
+assert_exit_code "$code" 0 "docker image does not trigger S1"
+assert_not_contains "$output" "FAIL: S1" "no S1 failure for docker image"
+rm -f "$tmpfile"
+
 # SHA without version comment
 tmpfile=$(make_workflow <<'YAML'
 name: test
@@ -203,6 +226,28 @@ result=$(run_validator "$tmpfile")
 code="${result%%|*}"
 output="${result#*|}"
 assert_contains "$output" "FAIL: S2" "no permissions block fails S2"
+rm -f "$tmpfile"
+
+# write-all should fail
+tmpfile=$(make_workflow <<'YAML'
+name: test
+on: push
+permissions: write-all
+concurrency:
+  group: test
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./my-action
+YAML
+)
+result=$(run_validator "$tmpfile")
+code="${result%%|*}"
+output="${result#*|}"
+assert_exit_code "$code" 1 "write-all fails S2"
+assert_contains "$output" "FAIL: S2" "write-all is rejected"
 rm -f "$tmpfile"
 
 # Empty permissions object is valid
@@ -274,6 +319,30 @@ result=$(run_validator "$tmpfile")
 code="${result%%|*}"
 output="${result#*|}"
 assert_contains "$output" "FAIL: S4" "injection in multi-line run: fails S4"
+rm -f "$tmpfile"
+
+# Folded run block with injection
+tmpfile=$(make_workflow <<'YAML'
+name: test
+on: push
+permissions:
+  contents: read
+concurrency:
+  group: test
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: >-
+          echo "${{ github.event.pull_request.title }}"
+YAML
+)
+result=$(run_validator "$tmpfile")
+code="${result%%|*}"
+output="${result#*|}"
+assert_exit_code "$code" 1 "injection in folded run: fails S4"
+assert_contains "$output" "FAIL: S4" "folded run injection is rejected"
 rm -f "$tmpfile"
 
 # Safe context in run block should pass
@@ -374,6 +443,48 @@ result=$(run_validator "$tmpfile")
 code="${result%%|*}"
 output="${result#*|}"
 assert_contains "$output" "FAIL: E3" "no concurrency block fails E3"
+rm -f "$tmpfile"
+
+# Empty concurrency object should fail
+tmpfile=$(make_workflow <<'YAML'
+name: test
+on: push
+permissions:
+  contents: read
+concurrency: {}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./my-action
+YAML
+)
+result=$(run_validator "$tmpfile")
+code="${result%%|*}"
+output="${result#*|}"
+assert_exit_code "$code" 1 "empty concurrency object fails E3"
+assert_contains "$output" "FAIL: E3" "empty concurrency object is rejected"
+rm -f "$tmpfile"
+
+# Inline concurrency object with required fields should pass
+tmpfile=$(make_workflow <<'YAML'
+name: test
+on: push
+permissions:
+  contents: read
+concurrency: { group: test, cancel-in-progress: true }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./my-action
+YAML
+)
+result=$(run_validator "$tmpfile")
+code="${result%%|*}"
+output="${result#*|}"
+assert_exit_code "$code" 0 "inline concurrency object passes E3"
+assert_not_contains "$output" "FAIL: E3" "inline concurrency object is accepted"
 rm -f "$tmpfile"
 
 # ---- Targeted tests: E4 Matrix ----

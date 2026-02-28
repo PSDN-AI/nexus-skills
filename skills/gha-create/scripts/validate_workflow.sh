@@ -61,19 +61,23 @@ check_s1() {
 
   while IFS= read -r line; do
     # Skip local actions
-    if echo "$line" | grep -qE 'uses:[[:space:]]*\./'; then
+    if [[ "$line" =~ uses:[[:space:]]*\./ ]]; then
+      continue
+    fi
+    # Skip Docker images, which use container tags instead of Git refs
+    if [[ "$line" =~ uses:[[:space:]]*docker:// ]]; then
       continue
     fi
     # Check for 40-char SHA
-    if ! echo "$line" | grep -qE '@[0-9a-f]{40}'; then
+    if [[ ! "$line" =~ @[0-9a-f]{40} ]]; then
       violations=$((violations + 1))
     else
       # SHA is present, check for version comment
-      if ! echo "$line" | grep -qE '#[[:space:]]*v[0-9]'; then
+      if [[ ! "$line" =~ \#[[:space:]]*v[0-9] ]]; then
         comment_violations=$((comment_violations + 1))
       fi
     fi
-  done < <(grep 'uses:' "$FILE" 2>/dev/null || true)
+  done < <(grep -E '^[[:space:]]*-?[[:space:]]*uses:' "$FILE" 2>/dev/null || true)
 
   if [[ $violations -eq 0 && $comment_violations -eq 0 ]]; then
     pass "S1 -- SHA Pinning"
@@ -94,16 +98,19 @@ check_s1() {
 # A permissions: block must exist at top level (before jobs:)
 # ---------------------------------------------------------------------------
 check_s2() {
-  local found
-  found=$(awk '
+  local permissions_line
+  permissions_line=$(awk '
     /^jobs:/ { exit }
-    /^permissions:/ { print "found"; exit }
+    /^permissions:/ { print; exit }
   ' "$FILE")
+  permissions_line=${permissions_line%%#*}
 
-  if [[ "$found" == "found" ]]; then
-    pass "S2 -- Least-Privilege Permissions"
-  else
+  if [[ -z "$permissions_line" ]]; then
     fail "S2 -- Least-Privilege Permissions (no top-level permissions: block)"
+  elif [[ "$permissions_line" =~ ^permissions:[[:space:]]*write-all([[:space:]]|$) ]]; then
+    fail "S2 -- Least-Privilege Permissions (top-level permissions must not use write-all)"
+  else
+    pass "S2 -- Least-Privilege Permissions"
   fi
 }
 
@@ -135,12 +142,12 @@ check_s4() {
   violations=$(awk -v pat="$dangerous" '
     BEGIN { in_run = 0; count = 0 }
     # Multi-line run block start
-    /^[[:space:]]*-?[[:space:]]*run:[[:space:]]*\|/ {
+    /^[[:space:]]*-?[[:space:]]*run:[[:space:]]*[>|][+-]?[[:space:]]*$/ {
       in_run = 1
       next
     }
     # Single-line run (not multi-line)
-    /^[[:space:]]*-?[[:space:]]*run:[[:space:]]*[^|]/ {
+    /^[[:space:]]*-?[[:space:]]*run:[[:space:]]*[^|>]/ {
       if (match($0, "\\$\\{\\{[[:space:]]*" pat)) {
         count++
       }
@@ -236,10 +243,56 @@ check_e2() {
 # Check for concurrency: at the top level
 # ---------------------------------------------------------------------------
 check_e3() {
-  if grep -qE '^concurrency:' "$FILE" 2>/dev/null; then
+  local status
+  status=$(awk '
+    function trim_inline_comment(value) {
+      sub(/[[:space:]]*#.*$/, "", value)
+      sub(/^[[:space:]]+/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      return value
+    }
+    BEGIN { found = 0; in_block = 0; has_group = 0; has_cancel = 0 }
+    /^jobs:/ { exit }
+    /^concurrency:/ {
+      found = 1
+      line = $0
+      sub(/^concurrency:[[:space:]]*/, "", line)
+      line = trim_inline_comment(line)
+      if (line == "") {
+        in_block = 1
+        next
+      }
+      if (line ~ /^\{/) {
+        if (line ~ /(^|[,{[:space:]])group[[:space:]]*:/) { has_group = 1 }
+        if (line ~ /(^|[,{[:space:]])cancel-in-progress[[:space:]]*:/) { has_cancel = 1 }
+      }
+      exit
+    }
+    in_block == 1 {
+      if ($0 ~ /^[[:space:]]*$/ || $0 ~ /^[[:space:]]*#/) { next }
+      if ($0 !~ /^[[:space:]]+/) { exit }
+      if ($0 ~ /^[[:space:]]+group:/) { has_group = 1 }
+      if ($0 ~ /^[[:space:]]+cancel-in-progress:/) { has_cancel = 1 }
+    }
+    END {
+      if (!found) { print "missing" }
+      else if (has_group && has_cancel) { print "valid" }
+      else if (!has_group && !has_cancel) { print "missing-both" }
+      else if (!has_group) { print "missing-group" }
+      else { print "missing-cancel" }
+    }
+  ' "$FILE")
+
+  if [[ "$status" == "valid" ]]; then
     pass "E3 -- Concurrency Control"
+  elif [[ "$status" == "missing" ]]; then
+    fail "E3 -- Concurrency Control (no top-level concurrency: block)"
+  elif [[ "$status" == "missing-group" ]]; then
+    fail "E3 -- Concurrency Control (concurrency: block missing group:)"
+  elif [[ "$status" == "missing-cancel" ]]; then
+    fail "E3 -- Concurrency Control (concurrency: block missing cancel-in-progress:)"
   else
-    fail "E3 -- Concurrency Control (no concurrency: block)"
+    fail "E3 -- Concurrency Control (concurrency: block missing group: and cancel-in-progress:)"
   fi
 }
 

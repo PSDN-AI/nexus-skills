@@ -27,17 +27,21 @@ done
 ## GitHub Actions
 
 ```yaml
-- uses: PSDN-AI/nexus-skills/skills/gha-create@main
+- uses: PSDN-AI/nexus-skills/skills/gha-create@<full-commit-sha>
   id: validate
   with:
     workflow_dir: ".github/workflows"
+    fail_on_violations: "true"
 ```
+
+Replace `<full-commit-sha>` with the exact commit you want to trust. Avoid mutable refs such as `@main`.
 
 **Inputs:**
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
 | `workflow_dir` | No | `.github/workflows` | Directory containing workflow files to validate |
+| `fail_on_violations` | No | `"true"` | Exit non-zero when any workflow file fails validation |
 
 **Outputs:**
 

@@ -7,6 +7,10 @@ inputs:
     description: "Directory containing workflow files to validate (defaults to .github/workflows)"
     required: false
     default: ".github/workflows"
+  fail_on_violations:
+    description: "Fail the workflow when one or more files violate the rules"
+    required: false
+    default: "true"
 
 outputs:
   status:
@@ -35,7 +39,15 @@ runs:
         echo "status=$STATUS" >> "$GITHUB_OUTPUT"
         echo "violations=$VIOLATIONS" >> "$GITHUB_OUTPUT"
 
+    - name: Enforce validation result
+      if: ${{ inputs.fail_on_violations == 'true' && steps.validate.outputs.status == 'FAIL' }}
+      shell: bash
+      run: |
+        echo "gha-create found workflow violations" >&2
+        exit 1
+
     - name: Display summary
+      if: ${{ always() }}
       shell: bash
       run: |
         echo "## GHA Create Validation" >> "$GITHUB_STEP_SUMMARY"
