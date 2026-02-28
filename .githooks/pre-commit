@@ -4,10 +4,13 @@
 
 set -euo pipefail
 
-# Get staged .sh files (added, copied, modified, renamed)
-staged_files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.sh' || true)
+# Get staged .sh files (NUL-delimited for path safety)
+staged_files=()
+while IFS= read -r -d '' file; do
+    staged_files+=("$file")
+done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.sh')
 
-if [ -z "$staged_files" ]; then
+if [ ${#staged_files[@]} -eq 0 ]; then
     exit 0
 fi
 
@@ -19,7 +22,7 @@ fi
 
 # Lint the staged content (not the working tree) to handle partial staging correctly
 errors=0
-for file in $staged_files; do
+for file in "${staged_files[@]}"; do
     if ! git show ":$file" | shellcheck -f gcc -; then
         echo "  ^ in staged content of $file"
         errors=1
