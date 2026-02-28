@@ -22,4 +22,3 @@ Additional rules:
 - New skill proposals and new skill pull requests must include `new-skill`
 - Use `skill:<name>` only when one skill is the primary focus of the change
 - `status:needs-review` and `status:blocked` are optional workflow labels
-- Do not use legacy labels for new work: `skill:repo-public-readiness`, `skill:github-actions-hardening`, `skill:github-actions-standard`, and `skill:github-actions-pro`
