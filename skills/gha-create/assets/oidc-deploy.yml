@@ -1,0 +1,41 @@
+# OIDC-Based AWS Deployment
+# SHA pins verified: 2026-02-28. See references/SHA_LOOKUP.md to check for updates.
+#
+# Rules demonstrated: S1 (SHA pinning), S2 (least-privilege + job-level elevation),
+# S3 (OIDC authentication), E3 (concurrency with cancel-in-progress: false)
+#
+# Note: No path filtering (E1) - deployment workflows should run on every push to main.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:                                                     # S2: Least-privilege at top level
+  contents: read
+
+concurrency:                                                     # E3: No cancel for deployments
+  group: deploy-production
+  cancel-in-progress: false                                      # Never cancel an in-progress deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production                                      # Requires environment protection rules
+    permissions:                                                 # S2 + S3: Job-level elevation
+      contents: read
+      id-token: write                                            # Required for OIDC (S3)
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 (S1)
+
+      - uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0 (S1, S3)
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/github-deploy
+          aws-region: us-east-1
+          # S3: No AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY needed
+
+      - name: Deploy to S3
+        run: |
+          aws s3 sync ./dist s3://my-app-bucket --delete
+          echo "Deployed successfully"
