@@ -29,6 +29,7 @@ metadata:
 - [Pillar 1: Security Best Practices](#pillar-1-security-best-practices)
 - [Pillar 2: Efficiency Best Practices](#pillar-2-efficiency-best-practices)
 - [Workflow Generation Process](#workflow-generation-process)
+- [Advanced Reuse Patterns](#advanced-reuse-patterns)
 - [Validation](#validation)
 - [Common Pitfalls](#common-pitfalls)
 - [References](#references)
@@ -285,6 +286,24 @@ When generating a GitHub Actions workflow from scratch, follow these steps in or
 5. **Optimize with matrix** — If testing across versions or platforms, use `strategy.matrix` with `fail-fast: true` (E4). Use `include`/`exclude` to skip unnecessary combinations.
 
 6. **Validate** — Run `validate_workflow.sh` against the output, or manually verify against the [Quick Reference Checklist](#quick-reference-checklist).
+
+## Advanced Reuse Patterns
+
+When a workflow becomes large because the same logic is repeated across repositories, extract the shared logic instead of copying the entire file.
+
+### Prefer Reusable Workflows for repeated multi-job pipelines
+
+Use a reusable workflow (`workflow_call`) when the same CI, build, or deploy pipeline appears in multiple repositories or business units. This keeps the calling workflows short while centralizing the standard in one place.
+
+**Important**: If you call a reusable workflow from another repository, pin it to a full commit SHA just like any other `uses:` reference.
+
+### Prefer Composite Actions for repeated step sequences
+
+If the repetition is only a sequence of steps inside one job (for example setup, auth, packaging, or publish steps), use a composite action instead of a reusable workflow. Composite actions are a better fit for step-level reuse; reusable workflows are a better fit for job- or pipeline-level reuse.
+
+### Do not extract purely for appearance
+
+If a workflow is used in only one repository and is not repeated elsewhere, keep it inline unless extraction materially improves reuse, reviewability, or governance. Do not split a workflow out just to make the top-level YAML look shorter.
 
 ## Validation
 
