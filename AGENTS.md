@@ -47,7 +47,7 @@ Prefer macOS/Linux-compatible tooling (`grep`, `find`, `file`). Optional tools s
 ## Testing Guidelines
 Validation is skill-specific and execution-based:
 1. Run `bash skills/<skill-name>/tests/run_tests.sh` for every changed skill.
-2. Run `./skills/repo-audit/scripts/run_scan.sh .` before opening a PR.
+2. Run `./skills/repo-audit/scripts/run_scan.sh .` before opening a PR. Note: this repo will report ❌ NOT READY due to intentional fake secrets in test fixtures — verify all findings come from test files only.
 3. Re-run deterministic workflows (for example scanner checks) to verify stable output.
 
 When output formats change, update sample artifacts under the skill's `examples/` directory.
