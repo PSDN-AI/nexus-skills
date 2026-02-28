@@ -76,7 +76,6 @@ Rules:
 - Every pull request must have at least one type label and one scope or skill label.
 - New skill proposals and new skill pull requests must include `new-skill`.
 - Use exactly one `skill:<name>` label when the work primarily affects a single skill.
-- Do not use legacy labels for new work: `skill:repo-public-readiness`, `skill:github-actions-hardening`, `skill:github-actions-standard`, and `skill:github-actions-pro`.
 
 ## Security & Configuration Tips
 Never commit secrets, private keys, or `.env` files.  
