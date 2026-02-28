@@ -44,7 +44,7 @@ GitHub Action wrapper around Layer 2 scripts. Enables integration into CI/CD pip
 
 **Consumption**:
 ```yaml
-- uses: PSDN-AI/nexus-skills/skills/repo-public-readiness@v0.0.1
+- uses: PSDN-AI/nexus-skills/skills/repo-audit@v0.0.1
   with:
     repo_path: "."
 ```
@@ -65,10 +65,10 @@ Agents declare Skill dependencies in `config.yaml`. The reference is a pointer, 
 ```yaml
 # nexus-agents/agents/repo-guardian/config.yaml
 skills:
-  - name: repo-public-readiness
+  - name: repo-audit
     version: "1.0.0"
     source: https://github.com/PSDN-AI/nexus-skills
-    path: skills/repo-public-readiness
+    path: skills/repo-audit
 ```
 
 ### Resolution at Runtime

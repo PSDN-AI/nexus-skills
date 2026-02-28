@@ -59,7 +59,7 @@ Every `SKILL.md` starts with YAML frontmatter (between `---` delimiters), follow
 
 ```yaml
 ---
-name: repo-public-readiness
+name: repo-audit
 description: "Scans repositories for hardcoded secrets, API keys, credentials, PII, Web3 private keys, code quality issues, missing documentation, and compliance problems before making them public. Use when preparing to open-source a private repo, auditing a codebase for accidentally committed secrets, or running a pre-release security and compliance checklist."
 license: MIT
 compatibility: "Requires bash 4.0+, grep, find, file, wc, du, stat. Optional: gitleaks, shellcheck, trivy, jq for enhanced checks."
@@ -72,8 +72,8 @@ metadata:
 ### Name Rules
 
 Valid:
-- `pdf-processing`
-- `repo-public-readiness`
+- `repo-audit`
+- `prd-decompose`
 - `code-review`
 
 Invalid:
@@ -275,7 +275,7 @@ Tests are not required by the Agent Skills standard but are strongly recommended
 - `run_tests.sh` — entry point that CI calls
 - `test_*.sh` — individual test files
 
-See `skills/repo-public-readiness/tests/` for a reference implementation.
+See `skills/repo-audit/tests/` for a reference implementation.
 
 ### Three Consumption Models
 
@@ -293,9 +293,26 @@ Not every Skill needs scripts (Model B is valid on its own), but your SKILL.md i
 
 ## Naming Conventions
 
+### Skill Name Format
+
+Skill names follow a **noun-verb** pattern: `<subject>-<action>`.
+
+- The first word is the **subject** — what you're working with
+- The second word is the **action** — what you're doing to it
+
+Examples:
+- `repo-audit` — audit a repository
+- `prd-decompose` — decompose a PRD
+- `code-review` — review code
+- `deploy-check` — check a deployment
+
+Keep it to **two words**. If the subject or action is universally understood as a compound (e.g., `ci-cd`), that counts as one word.
+
+### General Naming Rules
+
 | Item | Convention | Example |
 |------|-----------|---------|
-| Skill directory | lowercase kebab-case | `repo-public-readiness` |
+| Skill directory | noun-verb, lowercase kebab-case | `repo-audit` |
 | Script files | snake_case | `run_scan.sh` |
 | YAML keys | snake_case | `tested_with` |
 | Reference files | UPPER_CASE.md or descriptive | `SCAN_SPEC.md`, `report_format.md` |
