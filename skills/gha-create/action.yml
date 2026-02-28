@@ -1,0 +1,43 @@
+name: "GHA Create Validator"
+description: "Validate GitHub Actions workflows against security and efficiency best practices"
+author: "PSDN-AI"
+
+inputs:
+  workflow_dir:
+    description: "Directory containing workflow files to validate (defaults to .github/workflows)"
+    required: false
+    default: ".github/workflows"
+
+outputs:
+  status:
+    description: "Overall validation status: PASS or FAIL"
+    value: ${{ steps.validate.outputs.status }}
+  violations:
+    description: "Number of workflow files with violations"
+    value: ${{ steps.validate.outputs.violations }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Validate workflows
+      id: validate
+      shell: bash
+      run: |
+        VIOLATIONS=0
+        STATUS="PASS"
+        for f in "${{ inputs.workflow_dir }}"/*.yml "${{ inputs.workflow_dir }}"/*.yaml; do
+          [[ -f "$f" ]] || continue
+          if ! "${{ github.action_path }}/scripts/validate_workflow.sh" "$f"; then
+            VIOLATIONS=$((VIOLATIONS + 1))
+            STATUS="FAIL"
+          fi
+        done
+        echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+        echo "violations=$VIOLATIONS" >> "$GITHUB_OUTPUT"
+
+    - name: Display summary
+      shell: bash
+      run: |
+        echo "## GHA Create Validation" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Status**: ${{ steps.validate.outputs.status }}" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Violations**: ${{ steps.validate.outputs.violations }}" >> "$GITHUB_STEP_SUMMARY"

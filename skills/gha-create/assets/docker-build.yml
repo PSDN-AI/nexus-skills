@@ -1,0 +1,54 @@
+# Docker Build and Push to GHCR
+# SHA pins verified: 2026-02-28. See references/SHA_LOOKUP.md to check for updates.
+#
+# Rules demonstrated: S1 (SHA pinning), S2 (least-privilege + job-level elevation),
+# E1 (path filtering), E3 (concurrency), E2 (Docker layer caching via GHA backend)
+
+name: Docker Build
+
+on:
+  push:
+    branches: [main]
+    paths:                                                       # E1: Path filtering
+      - 'Dockerfile'
+      - 'src/**'
+      - '.dockerignore'
+      - '.github/workflows/docker-build.yml'
+  pull_request:
+    paths:                                                       # E1: Path filtering
+      - 'Dockerfile'
+      - 'src/**'
+      - '.dockerignore'
+      - '.github/workflows/docker-build.yml'
+
+permissions:                                                     # S2: Least-privilege at top level
+  contents: read
+
+concurrency:                                                     # E3: Concurrency control
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:                                                 # S2: Job-level elevation
+      contents: read
+      packages: write                                            # Needed to push to GHCR
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 (S1)
+
+      - uses: docker/setup-buildx-action@f7ce87c1d6bead3e36075b2ce75da1f6cc28aaca # v3.9.0 (S1)
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0 (S1)
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0 (S1)
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' }}
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          cache-from: type=gha                                   # E2: Docker layer caching
+          cache-to: type=gha,mode=max
