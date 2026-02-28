@@ -6,8 +6,8 @@ All skills live in `skills/<skill-name>/` (lowercase kebab-case). Each skill mus
 - `SKILL.md` (YAML frontmatter + instructions)
 
 Current skills:
-- `skills/repo-public-readiness/` (repository readiness scanner)
-- `skills/prd-decomposer/` (PRD decomposition workflow)
+- `skills/repo-audit/` (repository readiness scanner)
+- `skills/prd-decompose/` (PRD decomposition workflow)
 
 Standard skill layout (recommended):
 - `scripts/` for executable workflows
@@ -18,11 +18,11 @@ Standard skill layout (recommended):
 - `action.yml` for GitHub Actions integration
 
 ## Build, Test, and Development Commands
-- `./skills/repo-public-readiness/scripts/run_scan.sh /path/to/repo`  
+- `./skills/repo-audit/scripts/run_scan.sh /path/to/repo`  
 Runs the full public-readiness scan and prints a Markdown report.
-- `./skills/repo-public-readiness/scripts/run_scan.sh .`  
+- `./skills/repo-audit/scripts/run_scan.sh .`  
 Validates this repository (recommended before opening a PR).
-- `./skills/prd-decomposer/scripts/decompose.sh <prd_path> --dry-run`  
+- `./skills/prd-decompose/scripts/decompose.sh <prd_path> --dry-run`  
 Validates PRD parsing/classification without writing output files.
 - `bash skills/<skill-name>/tests/run_tests.sh`  
 Runs the test suite for a specific skill.
@@ -37,7 +37,7 @@ Fast syntax check when `shellcheck` is unavailable.
 Use portable Bash (`#!/usr/bin/env bash`) with `set -euo pipefail`. Scripts must accept target paths as arguments; do not hardcode local paths.
 Require Bash 4.0+ when associative arrays are used.  
 Naming rules:
-- Skill directories: kebab-case (`repo-public-readiness`)
+- Skill names: noun-verb pattern (`repo-audit`, `prd-decompose`) — two words, lowercase kebab-case
 - Script files: snake_case (`run_scan.sh`)
 - YAML keys: snake_case
 - SKILL frontmatter `name` must match directory name exactly
@@ -47,7 +47,7 @@ Prefer macOS/Linux-compatible tooling (`grep`, `find`, `file`). Optional tools s
 ## Testing Guidelines
 Validation is skill-specific and execution-based:
 1. Run `bash skills/<skill-name>/tests/run_tests.sh` for every changed skill.
-2. Run `./skills/repo-public-readiness/scripts/run_scan.sh .` before opening a PR.
+2. Run `./skills/repo-audit/scripts/run_scan.sh .` before opening a PR. Note: this repo will report ❌ NOT READY due to intentional fake secrets in test fixtures — verify all findings come from test files only.
 3. Re-run deterministic workflows (for example scanner checks) to verify stable output.
 
 When output formats change, update sample artifacts under the skill's `examples/` directory.
