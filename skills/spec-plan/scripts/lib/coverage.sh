@@ -36,15 +36,18 @@ check_ac_coverage() {
     return 0
   fi
 
-  # Extract all mapped AC IDs from tasks.yaml
+  # Extract mapped AC IDs from tasks section only (not validation.unmapped_criteria)
   local -a mapped_ac_ids=()
+  local tasks_section
+  tasks_section=$(sed -n '/^tasks:/,/^execution_plan:/p' "$tasks_file")
+
   while IFS= read -r line; do
     local ac_id
     ac_id=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
     if echo "$ac_id" | grep -qE '^AC-[0-9]+$'; then
       mapped_ac_ids+=("$ac_id")
     fi
-  done < <(grep -E '^\s+- AC-[0-9]+' "$tasks_file" 2>/dev/null)
+  done < <(echo "$tasks_section" | grep -E '^\s+- AC-[0-9]+' 2>/dev/null)
 
   # Find unmapped ACs
   local -a unmapped=()

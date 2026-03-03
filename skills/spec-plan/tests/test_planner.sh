@@ -333,6 +333,82 @@ test_help_flag() {
 }
 
 # ============================================================
+# Test 11: AC in unmapped_criteria must not count as mapped
+# ============================================================
+test_unmapped_criteria_not_counted() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  # P0 AC exists in boundary but only appears in validation.unmapped_criteria
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test Spec
+[EXTRACTED] Placeholder requirement.
+SPEC
+
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+
+acceptance_criteria:
+  - id: AC-001
+    description: "Critical requirement"
+    source_section: "Test"
+    priority: P0
+
+constraints: []
+test_hints: []
+YAML
+
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: TEST-001
+    name: "Placeholder"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "README.md"
+    acceptance_criteria: []
+    prompt_context: |
+      Do nothing.
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+    parallel: false
+    reason: "Single task"
+
+validation:
+  total_tasks: 1
+  total_phases: 1
+  parallelizable_tasks: 0
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 1
+  unmapped_criteria:
+    - AC-001
+  files_conflict_check: pass
+  spec_coverage: "0%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 4 "T11: P0 AC only in unmapped_criteria fails coverage (exit 4)"
+  assert_contains "$output" "Coverage:   FAIL" "T11: coverage check reports FAIL"
+}
+
+# ============================================================
 # Run all tests
 # ============================================================
 echo ">> spec-plan integration tests"
@@ -350,5 +426,6 @@ test_missing_boundary
 test_idempotency
 test_empty_spec
 test_custom_contracts
+test_unmapped_criteria_not_counted
 
 print_summary
