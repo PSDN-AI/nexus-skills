@@ -16,7 +16,7 @@ git config core.hooksPath .githooks
 4. Fill in the template — read [SKILL_GUIDE.md](SKILL_GUIDE.md) for format requirements and best practices
 5. Add your Skill to `.claude-plugin/marketplace.json` in the `plugins` array
 6. Run the repo-audit scanner on the repo: `./skills/repo-audit/scripts/run_scan.sh .`
-   - **Note**: Running on this repo will report ❌ NOT READY — this is expected. The scanner detects fake secrets and internal keywords in test fixtures (`tests/test_check_secrets.sh`, `tests/test_check_compliance.sh`). Review the report to confirm all findings come from test files only.
+   - **Note**: Running on this repo will report ❌ NOT READY — this is expected. The scanner detects fake secrets and internal keywords in test fixtures (`skills/repo-audit/tests/test_check_secrets.sh`, `skills/repo-audit/tests/test_check_compliance.sh`). Review the report to confirm all findings come from test files only.
 7. Open a PR describing what real-world problem your Skill solves
 
 ## Issue and PR Labels
