@@ -1388,9 +1388,17 @@ YAML
 # Test 26: Missing yq must fail fast
 # ============================================================
 test_missing_yq() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  local fakebin="$tmpdir/fakebin"
+  mkdir -p "$fakebin"
+  ln -s "$(command -v dirname)" "$fakebin/dirname"
+
   local exit_code=0
   local output
-  output=$(env PATH="/usr/bin:/bin:/usr/sbin:/sbin" "$BASH" "$PLAN_SH" "$FIXTURES/frontend-domain" --validate-only 2>&1) || exit_code=$?
+  output=$(env PATH="$fakebin" "$BASH" "$PLAN_SH" "$FIXTURES/frontend-domain" --validate-only 2>&1) || exit_code=$?
 
   assert_exit_code "$exit_code" 1 "T26: missing yq returns exit code 1"
   assert_contains "$output" "yq v4+ is required" "T26: error message names required yq dependency"
