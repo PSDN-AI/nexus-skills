@@ -9,64 +9,37 @@ check_ac_coverage() {
   local tasks_file="$1"
   local boundary_file="$2"
 
+  if ! command -v yq >/dev/null 2>&1; then
+    echo "Error: yq v4+ (mikefarah/yq) is required for AC coverage checks" >&2
+    return 1
+  fi
+
   if [[ ! -f "$boundary_file" ]]; then
     echo "Warning: boundary.yaml not found, skipping AC coverage check" >&2
     return 0
   fi
 
-  # Extract all AC IDs from boundary.yaml
   local -a all_ac_ids=()
   local -A ac_priorities=()
-  local current_id=""
+  local -a boundary_ac_rows=()
+  mapfile -t boundary_ac_rows < <(yq -r '.acceptance_criteria[]? | [.id, (.priority // "unknown")] | @tsv' "$boundary_file")
 
-  while IFS= read -r line; do
-    if echo "$line" | grep -q '  - id:'; then
-      current_id=$(echo "$line" | sed 's/.*id: *//' | tr -d '"' | tr -d "'")
-      all_ac_ids+=("$current_id")
-    fi
-    if [[ -n "$current_id" ]] && echo "$line" | grep -q '    priority:'; then
-      local priority
-      priority=$(echo "$line" | sed 's/.*priority: *//' | tr -d '"' | tr -d "'" | tr -d ' ')
-      ac_priorities["$current_id"]="$priority"
-    fi
-  done < "$boundary_file"
+  local row ac_id priority
+  for row in "${boundary_ac_rows[@]}"; do
+    ac_id=${row%%$'\t'*}
+    priority=${row#*$'\t'}
+    [[ -z "$ac_id" ]] && continue
+    all_ac_ids+=("$ac_id")
+    ac_priorities["$ac_id"]="$priority"
+  done
 
   if [[ ${#all_ac_ids[@]} -eq 0 ]]; then
     echo "Warning: No acceptance criteria found in boundary.yaml" >&2
     return 0
   fi
 
-  # Extract mapped AC IDs only from acceptance_criteria blocks inside tasks
   local -a mapped_ac_ids=()
-  local tasks_section
-  tasks_section=$(sed -n '/^tasks:/,/^execution_plan:/p' "$tasks_file")
-
-  local in_ac_block=false
-  while IFS= read -r line; do
-    # Enter acceptance_criteria block
-    if echo "$line" | grep -q '    acceptance_criteria:'; then
-      in_ac_block=true
-      # Handle inline empty array
-      if echo "$line" | grep -q '\[\]'; then
-        in_ac_block=false
-      fi
-      continue
-    fi
-
-    # Exit acceptance_criteria block on next task field or new task
-    if [[ "$in_ac_block" == "true" ]]; then
-      if echo "$line" | grep -qE '^    [a-z_]+:|^  - id:'; then
-        in_ac_block=false
-        continue
-      fi
-      # Collect AC IDs within the block
-      local ac_id
-      ac_id=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
-      if echo "$ac_id" | grep -qE '^AC-[0-9]+$'; then
-        mapped_ac_ids+=("$ac_id")
-      fi
-    fi
-  done <<< "$tasks_section"
+  mapfile -t mapped_ac_ids < <(yq -r '.tasks[]?.acceptance_criteria[]?' "$tasks_file")
 
   # Find unmapped ACs
   local -a unmapped=()
@@ -103,8 +76,7 @@ check_ac_coverage() {
   if [[ ${#unmapped[@]} -gt 0 ]]; then
     echo "Unmapped ACs:"
     for ac_id in "${unmapped[@]}"; do
-      local priority="${ac_priorities[$ac_id]:-unknown}"
-      echo "  - ${ac_id} (${priority})"
+      echo "  - ${ac_id} (${ac_priorities[$ac_id]:-unknown})"
     done
   fi
 

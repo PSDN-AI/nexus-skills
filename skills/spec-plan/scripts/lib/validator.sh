@@ -14,66 +14,96 @@ validate_tasks_yaml() {
     return 2
   fi
 
+  if ! command -v yq >/dev/null 2>&1; then
+    echo "Error: yq v4+ (mikefarah/yq) is required for validation" >&2
+    return 2
+  fi
+
+  if ! yq -e '.' "$tasks_file" >/dev/null 2>&1; then
+    echo "Error: Invalid YAML syntax in tasks.yaml" >&2
+    return 2
+  fi
+
   # --- Required top-level keys ---
-  local required_keys=("version:" "domain:" "generated_at:" "generated_from:" "tasks:" "execution_plan:" "validation:")
+  local required_keys=("version" "domain" "generated_at" "generated_from" "tasks" "execution_plan" "validation")
+  local key
   for key in "${required_keys[@]}"; do
-    if ! grep -q "^${key}" "$tasks_file"; then
-      echo "Error: Missing required top-level key: ${key}" >&2
+    if ! yq -e "has(\"${key}\")" "$tasks_file" >/dev/null 2>&1; then
+      echo "Error: Missing required top-level key: ${key}:" >&2
       errors=$((errors + 1))
     fi
   done
 
+  # --- generated_from validation ---
+  local required_generated_from_fields=("spec" "boundary" "contracts")
+  local field
+  for field in "${required_generated_from_fields[@]}"; do
+    if ! yq -e ".generated_from // {} | has(\"${field}\")" "$tasks_file" >/dev/null 2>&1; then
+      echo "Error: generated_from missing required field: ${field}" >&2
+      errors=$((errors + 1))
+    fi
+  done
+
+  local actual_domain
+  actual_domain=$(yq -r '.domain // ""' "$tasks_file")
+  local generated_spec
+  generated_spec=$(yq -r '.generated_from.spec // ""' "$tasks_file")
+  local generated_boundary
+  generated_boundary=$(yq -r '.generated_from.boundary // ""' "$tasks_file")
+
+  if [[ -n "$actual_domain" ]] && [[ -n "$generated_spec" ]]; then
+    local expected_from_spec
+    expected_from_spec=$(basename "$(dirname "$generated_spec")")
+    if [[ "$actual_domain" != "$expected_from_spec" ]]; then
+      echo "Error: domain '${actual_domain}' does not match generated_from.spec directory '${expected_from_spec}'" >&2
+      errors=$((errors + 1))
+    fi
+  fi
+
+  if [[ -n "$actual_domain" ]] && [[ -n "$generated_boundary" ]]; then
+    local expected_from_boundary
+    expected_from_boundary=$(basename "$(dirname "$generated_boundary")")
+    if [[ "$actual_domain" != "$expected_from_boundary" ]]; then
+      echo "Error: domain '${actual_domain}' does not match generated_from.boundary directory '${expected_from_boundary}'" >&2
+      errors=$((errors + 1))
+    fi
+  fi
+
   # --- Task-level validation ---
   local task_count
-  task_count=$(grep -c '^  - id:' "$tasks_file" 2>/dev/null || echo "0")
-
+  task_count=$(yq -r '.tasks // [] | length' "$tasks_file")
   if [[ "$task_count" -eq 0 ]]; then
     echo "Error: No tasks found in tasks.yaml" >&2
     errors=$((errors + 1))
   fi
 
-  # Check required task fields exist somewhere after each task id
-  local task_ids=()
-  while IFS= read -r line; do
+  local -a task_ids=()
+  local i
+  for ((i = 0; i < task_count; i++)); do
     local tid
-    tid=$(echo "$line" | sed 's/^  - id: *//' | tr -d '"' | tr -d "'")
+    tid=$(yq -r ".tasks[${i}].id // \"<missing-id-$((i + 1))>\"" "$tasks_file")
     task_ids+=("$tid")
-  done < <(grep '^  - id:' "$tasks_file")
 
-  # Validate task ID format: PREFIX-NNN
-  for tid in "${task_ids[@]}"; do
-    if ! echo "$tid" | grep -qE '^[A-Z]+-[0-9]+$'; then
+    if ! yq -e ".tasks[${i}] | has(\"id\")" "$tasks_file" >/dev/null 2>&1; then
+      echo "Error: Task #$((i + 1)) missing required field: id:" >&2
+      errors=$((errors + 1))
+    fi
+
+    if [[ "$tid" != "<missing-id-$((i + 1))>" ]] && ! echo "$tid" | grep -qE '^[A-Z]+-[0-9]+$'; then
       echo "Error: Invalid task ID format: ${tid} (expected PREFIX-NNN)" >&2
       errors=$((errors + 1))
     fi
-  done
 
-  # Check required fields per task (not sampling — every task must have every field)
-  local required_task_fields=("name:" "depends_on:" "estimated_complexity:" "files_touched:" "acceptance_criteria:" "prompt_context:")
-  local tasks_section
-  tasks_section=$(sed -n '/^tasks:/,/^execution_plan:/p' "$tasks_file")
-
-  for tid in "${task_ids[@]}"; do
-    # Extract block for this task: from "- id: TID" to next "- id:" or end
-    local task_block
-    task_block=$(echo "$tasks_section" | sed -n "/^  - id: ${tid}/,/^  - id:/p" | sed '$ d')
-    # If last task, sed range won't match a closing "- id:", so result is empty
-    if [[ -z "$task_block" ]]; then
-      task_block=$(echo "$tasks_section" | sed -n "/^  - id: ${tid}/,\$p")
-    fi
-
+    local required_task_fields=("name" "depends_on" "estimated_complexity" "files_touched" "acceptance_criteria" "prompt_context")
     for field in "${required_task_fields[@]}"; do
-      if ! echo "$task_block" | grep -q "    ${field}"; then
-        echo "Error: Task ${tid} missing required field: ${field}" >&2
+      if ! yq -e ".tasks[${i}] | has(\"${field}\")" "$tasks_file" >/dev/null 2>&1; then
+        echo "Error: Task ${tid} missing required field: ${field}:" >&2
         errors=$((errors + 1))
       fi
     done
-  done
 
-  # Validate estimated_complexity values
-  while IFS= read -r line; do
     local complexity
-    complexity=$(echo "$line" | sed 's/.*estimated_complexity: *//' | tr -d '"' | tr -d "'")
+    complexity=$(yq -r ".tasks[${i}].estimated_complexity // \"\"" "$tasks_file")
     case "$complexity" in
       low|medium|high) ;;
       *)
@@ -81,62 +111,106 @@ validate_tasks_yaml() {
         errors=$((errors + 1))
         ;;
     esac
-  done < <(grep 'estimated_complexity:' "$tasks_file")
+  done
 
   # --- DAG validation (no circular dependencies) ---
   validate_dag "$tasks_file" || errors=$((errors + 1))
 
   # --- Execution plan validation ---
   local phase_count
-  phase_count=$(grep -c '^  - phase:' "$tasks_file" 2>/dev/null || echo "0")
-
+  phase_count=$(yq -r '.execution_plan // [] | length' "$tasks_file")
   if [[ "$phase_count" -eq 0 ]]; then
     echo "Error: No execution phases found" >&2
     errors=$((errors + 1))
   fi
 
-  # Build task-to-phase mapping from execution_plan
-  # Also detect unknown tasks, duplicates, and collect phase numbers
   local -A task_phase_map=()
   local -A task_seen_count=()
-  local -a phase_numbers=()
-  local current_phase=""
-  local exec_section
-  exec_section=$(sed -n '/^execution_plan:/,/^validation:/p' "$tasks_file")
-
-  while IFS= read -r line; do
-    if echo "$line" | grep -q '  - phase:'; then
-      current_phase=$(echo "$line" | sed 's/.*phase: *//' | tr -d '"' | tr -d ' ')
-      phase_numbers+=("$current_phase")
-    fi
-    if [[ -n "$current_phase" ]] && echo "$line" | grep -qE '^\s+- [A-Z]+-[0-9]+'; then
-      local ptid
-      ptid=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
-      task_phase_map["$ptid"]="$current_phase"
-      task_seen_count["$ptid"]=$(( ${task_seen_count[$ptid]:-0} + 1 ))
-    fi
-  done <<< "$exec_section"
-
-  # Verify phases are sequential integers starting from 1
+  local phase_numbers_are_numeric=true
   local expected_phase=1
-  for pnum in "${phase_numbers[@]}"; do
-    if [[ "$pnum" -ne "$expected_phase" ]]; then
-      echo "Error: Execution plan phases must be sequential from 1 (expected ${expected_phase}, found ${pnum})" >&2
+
+  for ((i = 0; i < phase_count; i++)); do
+    local phase_label="#$((i + 1))"
+    local has_phase=false
+    if yq -e ".execution_plan[${i}] | has(\"phase\")" "$tasks_file" >/dev/null 2>&1; then
+      has_phase=true
+      phase_label=$(yq -r ".execution_plan[${i}].phase" "$tasks_file")
+    else
+      echo "Error: Execution plan phase #$((i + 1)) missing required field: phase" >&2
       errors=$((errors + 1))
-      break
+      phase_numbers_are_numeric=false
     fi
-    expected_phase=$((expected_phase + 1))
+
+    if ! yq -e ".execution_plan[${i}] | has(\"tasks\")" "$tasks_file" >/dev/null 2>&1; then
+      echo "Error: Execution plan phase ${phase_label} missing required field: tasks" >&2
+      errors=$((errors + 1))
+    else
+      local tasks_len
+      tasks_len=$(yq -r ".execution_plan[${i}].tasks // [] | length" "$tasks_file")
+      if [[ "$tasks_len" -eq 0 ]]; then
+        echo "Error: Execution plan phase ${phase_label} must include at least one task" >&2
+        errors=$((errors + 1))
+      fi
+    fi
+
+    if ! yq -e ".execution_plan[${i}] | has(\"parallel\")" "$tasks_file" >/dev/null 2>&1; then
+      echo "Error: Execution plan phase ${phase_label} missing required field: parallel" >&2
+      errors=$((errors + 1))
+    else
+      local parallel_tag
+      parallel_tag=$(yq -r ".execution_plan[${i}].parallel | tag" "$tasks_file")
+      if [[ "$parallel_tag" != "!!bool" ]]; then
+        local parallel_val
+        parallel_val=$(yq -r ".execution_plan[${i}].parallel" "$tasks_file")
+        echo "Error: Execution plan phase ${phase_label} parallel must be a boolean (found ${parallel_val})" >&2
+        errors=$((errors + 1))
+      fi
+    fi
+
+    if ! yq -e ".execution_plan[${i}] | has(\"reason\")" "$tasks_file" >/dev/null 2>&1; then
+      echo "Error: Execution plan phase ${phase_label} missing required field: reason" >&2
+      errors=$((errors + 1))
+    fi
+
+    if [[ "$has_phase" == "true" ]]; then
+      local pnum
+      pnum=$(yq -r ".execution_plan[${i}].phase" "$tasks_file")
+      if ! echo "$pnum" | grep -qE '^[0-9]+$'; then
+        echo "Error: Execution plan phase must be an integer (found ${pnum})" >&2
+        errors=$((errors + 1))
+        phase_numbers_are_numeric=false
+      elif [[ "$pnum" -ne "$expected_phase" ]]; then
+        echo "Error: Execution plan phases must be sequential from 1 (expected ${expected_phase}, found ${pnum})" >&2
+        errors=$((errors + 1))
+        phase_numbers_are_numeric=false
+      else
+        expected_phase=$((expected_phase + 1))
+      fi
+    fi
+
+    mapfile -t phase_task_ids < <(yq -r ".execution_plan[${i}].tasks[]?" "$tasks_file")
+    local ptid
+    for ptid in "${phase_task_ids[@]}"; do
+      [[ -z "$ptid" ]] && continue
+      if [[ "$has_phase" == "true" ]]; then
+        task_phase_map["$ptid"]="$phase_label"
+      fi
+      task_seen_count["$ptid"]=$(( ${task_seen_count[$ptid]:-0} + 1 ))
+    done
   done
 
-  # Verify all declared tasks appear in execution plan
+  local tid
   for tid in "${task_ids[@]}"; do
+    if [[ "$tid" == "<missing-id-"* ]]; then
+      continue
+    fi
     if [[ -z "${task_phase_map[$tid]:-}" ]]; then
       echo "Error: Task ${tid} not found in execution plan" >&2
       errors=$((errors + 1))
     fi
   done
 
-  # Verify no unknown tasks in execution plan
+  local ptid
   for ptid in "${!task_phase_map[@]}"; do
     local known=false
     for tid in "${task_ids[@]}"; do
@@ -151,7 +225,6 @@ validate_tasks_yaml() {
     fi
   done
 
-  # Verify no duplicate tasks across phases
   for ptid in "${!task_seen_count[@]}"; do
     if [[ "${task_seen_count[$ptid]}" -gt 1 ]]; then
       echo "Error: Task ${ptid} appears ${task_seen_count[$ptid]} times in execution plan (must appear exactly once)" >&2
@@ -159,8 +232,28 @@ validate_tasks_yaml() {
     fi
   done
 
-  # Verify execution plan respects dependency ordering
-  validate_phase_ordering "$tasks_file" || errors=$((errors + 1))
+  # --- Validation summary section ---
+  local required_validation_fields=(
+    "total_tasks"
+    "total_phases"
+    "parallelizable_tasks"
+    "acceptance_criteria_mapped"
+    "acceptance_criteria_unmapped"
+    "unmapped_criteria"
+    "files_conflict_check"
+    "spec_coverage"
+  )
+  for field in "${required_validation_fields[@]}"; do
+    if ! yq -e ".validation // {} | has(\"${field}\")" "$tasks_file" >/dev/null 2>&1; then
+      echo "Error: Validation section missing required field: ${field}" >&2
+      errors=$((errors + 1))
+    fi
+  done
+
+  # --- Dependency ordering semantics ---
+  if [[ "$phase_numbers_are_numeric" == "true" ]]; then
+    validate_phase_ordering "$tasks_file" || errors=$((errors + 1))
+  fi
 
   if [[ "$errors" -gt 0 ]]; then
     echo "Validation failed: ${errors} error(s) found" >&2
@@ -175,55 +268,30 @@ validate_tasks_yaml() {
 # Returns 0 if valid, 1 if circular dependency detected.
 validate_dag() {
   local tasks_file="$1"
+  local task_count
+  task_count=$(yq -r '.tasks // [] | length' "$tasks_file")
 
-  # Extract task IDs and their dependencies
-  # Simple approach: for each task, verify its depends_on targets exist
-  # and there are no cycles via iterative dependency resolution
   local -a all_ids=()
   local -A deps_map=()
-
-  local current_id=""
-  local in_depends=false
-
-  while IFS= read -r line; do
-    # Detect task ID
-    if echo "$line" | grep -q '^  - id:'; then
-      current_id=$(echo "$line" | sed 's/^  - id: *//' | tr -d '"' | tr -d "'")
-      all_ids+=("$current_id")
-      deps_map["$current_id"]=""
-      in_depends=false
+  local i
+  for ((i = 0; i < task_count; i++)); do
+    local tid
+    tid=$(yq -r ".tasks[${i}].id // \"\"" "$tasks_file")
+    [[ -z "$tid" ]] && continue
+    all_ids+=("$tid")
+    mapfile -t deps < <(TASK_ID="$tid" yq -r '.tasks[] | select(.id == env(TASK_ID)) | .depends_on[]?' "$tasks_file")
+    if [[ ${#deps[@]} -gt 0 ]]; then
+      deps_map["$tid"]="${deps[*]}"
+    else
+      deps_map["$tid"]=""
     fi
+  done
 
-    # Detect depends_on section
-    if echo "$line" | grep -q '    depends_on:'; then
-      in_depends=true
-      # Check if it's an inline empty array
-      if echo "$line" | grep -q '\[\]'; then
-        in_depends=false
-      fi
-      continue
-    fi
-
-    # Collect dependency entries
-    if [[ "$in_depends" == "true" ]]; then
-      if echo "$line" | grep -qE '^\s+- [A-Z]+-[0-9]+'; then
-        local dep
-        dep=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
-        if [[ -n "${deps_map[$current_id]:-}" ]]; then
-          deps_map["$current_id"]="${deps_map[$current_id]} ${dep}"
-        else
-          deps_map["$current_id"]="$dep"
-        fi
-      else
-        in_depends=false
-      fi
-    fi
-  done < <(sed -n '/^tasks:/,/^execution_plan:/p' "$tasks_file")
-
-  # Verify all dependency targets exist
+  local tid dep
   for tid in "${all_ids[@]}"; do
     for dep in ${deps_map[$tid]:-}; do
       local dep_found=false
+      local check_id
       for check_id in "${all_ids[@]}"; do
         if [[ "$check_id" == "$dep" ]]; then
           dep_found=true
@@ -237,12 +305,10 @@ validate_dag() {
     done
   done
 
-  # Topological sort to detect cycles (Kahn's algorithm)
   local -A in_degree=()
   for tid in "${all_ids[@]}"; do
     in_degree["$tid"]=0
   done
-
   for tid in "${all_ids[@]}"; do
     for dep in ${deps_map[$tid]:-}; do
       in_degree["$tid"]=$(( ${in_degree[$tid]} + 1 ))
@@ -258,12 +324,11 @@ validate_dag() {
 
   local resolved=0
   local -a next_queue=()
-
   while [[ ${#queue[@]} -gt 0 ]]; do
     next_queue=()
+    local node
     for node in "${queue[@]}"; do
       resolved=$((resolved + 1))
-      # For each task that depends on this node, decrement its in-degree
       for tid in "${all_ids[@]}"; do
         for dep in ${deps_map[$tid]:-}; do
           if [[ "$dep" == "$node" ]]; then
@@ -292,70 +357,39 @@ validate_dag() {
 validate_phase_ordering() {
   local tasks_file="$1"
   local violations=0
+  local phase_count
+  phase_count=$(yq -r '.execution_plan // [] | length' "$tasks_file")
 
-  # Build phase map from execution_plan
   local -A phase_map=()
-  local cur_phase=""
-  local ep_section
-  ep_section=$(sed -n '/^execution_plan:/,/^validation:/p' "$tasks_file")
-
-  while IFS= read -r line; do
-    if echo "$line" | grep -q '  - phase:'; then
-      cur_phase=$(echo "$line" | sed 's/.*phase: *//' | tr -d '"' | tr -d ' ')
-    fi
-    if [[ -n "$cur_phase" ]] && echo "$line" | grep -qE '^\s+- [A-Z]+-[0-9]+'; then
-      local ptid
-      ptid=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
-      phase_map["$ptid"]="$cur_phase"
-    fi
-  done <<< "$ep_section"
-
-  # Extract deps_map from tasks section
-  local -a all_ids=()
-  local -A deps_map=()
-  local current_id=""
-  local in_depends=false
-
-  while IFS= read -r line; do
-    if echo "$line" | grep -q '^  - id:'; then
-      current_id=$(echo "$line" | sed 's/^  - id: *//' | tr -d '"' | tr -d "'")
-      all_ids+=("$current_id")
-      deps_map["$current_id"]=""
-      in_depends=false
-    fi
-
-    if echo "$line" | grep -q '    depends_on:'; then
-      in_depends=true
-      if echo "$line" | grep -q '\[\]'; then
-        in_depends=false
-      fi
+  local i
+  for ((i = 0; i < phase_count; i++)); do
+    local phase_num
+    phase_num=$(yq -r ".execution_plan[${i}].phase // \"\"" "$tasks_file")
+    if ! echo "$phase_num" | grep -qE '^[0-9]+$'; then
       continue
     fi
+    mapfile -t phase_task_ids < <(yq -r ".execution_plan[${i}].tasks[]?" "$tasks_file")
+    local ptid
+    for ptid in "${phase_task_ids[@]}"; do
+      [[ -z "$ptid" ]] && continue
+      phase_map["$ptid"]="$phase_num"
+    done
+  done
 
-    if [[ "$in_depends" == "true" ]]; then
-      if echo "$line" | grep -qE '^\s+- [A-Z]+-[0-9]+'; then
-        local dep
-        dep=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
-        if [[ -n "${deps_map[$current_id]:-}" ]]; then
-          deps_map["$current_id"]="${deps_map[$current_id]} ${dep}"
-        else
-          deps_map["$current_id"]="$dep"
-        fi
-      else
-        in_depends=false
-      fi
-    fi
-  done < <(sed -n '/^tasks:/,/^execution_plan:/p' "$tasks_file")
-
-  # Check: for every task, all its dependencies must be in earlier phases
-  for tid in "${all_ids[@]}"; do
+  local task_count
+  task_count=$(yq -r '.tasks // [] | length' "$tasks_file")
+  for ((i = 0; i < task_count; i++)); do
+    local tid
+    tid=$(yq -r ".tasks[${i}].id // \"\"" "$tasks_file")
+    [[ -z "$tid" ]] && continue
     local tid_phase="${phase_map[$tid]:-}"
-    [[ -z "$tid_phase" ]] && continue  # already reported as missing from plan
+    [[ -z "$tid_phase" ]] && continue
 
-    for dep in ${deps_map[$tid]:-}; do
+    mapfile -t deps < <(TASK_ID="$tid" yq -r '.tasks[] | select(.id == env(TASK_ID)) | .depends_on[]?' "$tasks_file")
+    local dep
+    for dep in "${deps[@]}"; do
       local dep_phase="${phase_map[$dep]:-}"
       [[ -z "$dep_phase" ]] && continue
-
       if [[ "$dep_phase" -ge "$tid_phase" ]]; then
         echo "Error: Task ${tid} (phase ${tid_phase}) depends on ${dep} (phase ${dep_phase}) — dependency must be in an earlier phase" >&2
         violations=$((violations + 1))

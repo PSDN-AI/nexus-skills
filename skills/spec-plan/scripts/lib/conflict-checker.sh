@@ -22,74 +22,26 @@ check_file_conflicts() {
   local tasks_file="$1"
   local conflicts=0
 
-  # Two-pass approach: first collect parallel phases, then check conflicts.
-  # This avoids reading the same file in nested loops (SC2094).
-
-  # --- Pass 1: Collect parallel phases and their task IDs ---
-  local -a parallel_phases=()
-  local -a parallel_tasks_list=()
-  local current_phase=""
-  local is_parallel=false
-  local -a phase_tasks=()
-  local in_exec_plan=false
-
-  local exec_section
-  exec_section=$(sed -n '/^execution_plan:/,/^validation:/p' "$tasks_file")
-
-  while IFS= read -r line; do
-    if [[ "$line" == "execution_plan:" ]]; then
-      in_exec_plan=true
-      continue
-    fi
-
-    if [[ "$line" == "validation:" ]]; then
-      break
-    fi
-
-    [[ "$in_exec_plan" != "true" ]] && continue
-
-    # Detect new phase
-    if echo "$line" | grep -q '  - phase:'; then
-      # Save previous phase if parallel with multiple tasks
-      if [[ "$is_parallel" == "true" ]] && [[ ${#phase_tasks[@]} -gt 1 ]]; then
-        parallel_phases+=("$current_phase")
-        parallel_tasks_list+=("${phase_tasks[*]}")
-      fi
-      current_phase=$(echo "$line" | sed 's/.*phase: *//' | tr -d '"')
-      is_parallel=false
-      phase_tasks=()
-      continue
-    fi
-
-    # Detect parallel flag
-    if echo "$line" | grep -q '    parallel:'; then
-      local val
-      val=$(echo "$line" | sed 's/.*parallel: *//' | tr -d '"' | tr -d ' ')
-      [[ "$val" == "true" ]] && is_parallel=true
-      continue
-    fi
-
-    # Collect task IDs
-    if echo "$line" | grep -qE '^\s+- [A-Z]+-[0-9]+'; then
-      local tid
-      tid=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
-      phase_tasks+=("$tid")
-    fi
-  done <<< "$exec_section"
-
-  # Handle last phase
-  if [[ "$is_parallel" == "true" ]] && [[ ${#phase_tasks[@]} -gt 1 ]]; then
-    parallel_phases+=("$current_phase")
-    parallel_tasks_list+=("${phase_tasks[*]}")
+  if ! command -v yq >/dev/null 2>&1; then
+    echo "Error: yq v4+ (mikefarah/yq) is required for conflict checks" >&2
+    return 3
   fi
 
-  # --- Pass 2: Check conflicts for each parallel phase ---
+  local phase_count
+  phase_count=$(yq -r '.execution_plan // [] | length' "$tasks_file")
+
   local idx
-  for ((idx = 0; idx < ${#parallel_phases[@]}; idx++)); do
-    local phase_num="${parallel_phases[$idx]}"
-    local task_str="${parallel_tasks_list[$idx]}"
+  for ((idx = 0; idx < phase_count; idx++)); do
+    local parallel_flag
+    parallel_flag=$(yq -r ".execution_plan[${idx}].parallel // false" "$tasks_file")
+    [[ "$parallel_flag" != "true" ]] && continue
+
+    local phase_num
+    phase_num=$(yq -r ".execution_plan[${idx}].phase // \"?\"" "$tasks_file")
+
     local -a tids=()
-    read -ra tids <<< "$task_str"
+    mapfile -t tids < <(yq -r ".execution_plan[${idx}].tasks[]?" "$tasks_file")
+    [[ ${#tids[@]} -le 1 ]] && continue
 
     check_phase_conflicts "$tasks_file" "$phase_num" "${tids[@]}" || conflicts=$((conflicts + 1))
   done
@@ -135,8 +87,8 @@ check_phase_conflicts() {
           if paths_conflict "$fa" "$fb"; then
             conflicts_found+=("${fa} <-> ${fb}")
           fi
-        done < <(echo "$files_b" | tr ' ' '\n')
-      done < <(echo "$files_a" | tr ' ' '\n')
+        done <<< "$files_b"
+      done <<< "$files_a"
 
       if [[ ${#conflicts_found[@]} -gt 0 ]]; then
         echo "Error: files_touched conflict in phase ${phase_num}:" >&2
@@ -153,59 +105,9 @@ check_phase_conflicts() {
 }
 
 # extract_files_touched <tasks_yaml_path> <task_id>
-# Outputs space-separated list of files for the given task.
+# Outputs newline-delimited list of files for the given task.
 extract_files_touched() {
   local tasks_file="$1"
   local target_id="$2"
-  local in_task=false
-  local in_files=false
-  local files=""
-
-  local tasks_section
-  tasks_section=$(sed -n '/^tasks:/,/^execution_plan:/p' "$tasks_file")
-
-  while IFS= read -r line; do
-    # Find the target task
-    if echo "$line" | grep -q "^  - id: ${target_id}"; then
-      in_task=true
-      continue
-    fi
-
-    # Stop at next task
-    if [[ "$in_task" == "true" ]] && echo "$line" | grep -q '^  - id:'; then
-      break
-    fi
-
-    [[ "$in_task" != "true" ]] && continue
-
-    # Detect files_touched section
-    if echo "$line" | grep -q '    files_touched:'; then
-      in_files=true
-      if echo "$line" | grep -q '\[\]'; then
-        in_files=false
-      fi
-      continue
-    fi
-
-    # Collect file entries
-    if [[ "$in_files" == "true" ]]; then
-      if echo "$line" | grep -qE '^\s+- "'; then
-        local f
-        f=$(echo "$line" | sed 's/.*- "//' | sed 's/".*//')
-        files="${files} ${f}"
-      elif echo "$line" | grep -qE "^\s+- '"; then
-        local f
-        f=$(echo "$line" | sed "s/.*- '//" | sed "s/'.*//")
-        files="${files} ${f}"
-      elif echo "$line" | grep -qE '^\s+- [^[]'; then
-        local f
-        f=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
-        files="${files} ${f}"
-      else
-        in_files=false
-      fi
-    fi
-  done <<< "$tasks_section"
-
-  echo "$files"
+  TASK_ID="$target_id" yq -r '.tasks[] | select(.id == env(TASK_ID)) | .files_touched[]?' "$tasks_file"
 }

@@ -2,7 +2,7 @@
 name: spec-plan
 description: "Converts a decomposed domain folder (output of prd-decompose) into tasks.yaml — an executable task graph with dependency ordering, parallelization strategy, and file-scope isolation. Use when you have a domain spec folder containing spec.md and boundary.yaml and need to plan concrete implementation tasks for AI agents. Do NOT use for PRD decomposition (use prd-decompose instead) or for executing tasks (use a future agent-launcher skill)."
 license: MIT
-compatibility: "Requires bash 4.0+, grep, sed, awk, find, sort, comm. Optional: yq (YAML validation)."
+compatibility: "Requires bash 4.0+, grep, find, sort, and mikefarah/yq v4+."
 metadata:
   author: PSDN-AI
   version: "0.1.0"
@@ -67,7 +67,9 @@ metadata:
 ## Prerequisites
 
 **Required**:
-- `bash` (4.0+; macOS ships 3.2 — run `brew install bash` to upgrade), `grep`, `sed`, `awk`, `find`, `sort`, `comm`
+- `bash` (4.0+; macOS ships 3.2 — run `brew install bash` to upgrade)
+- `yq` (mikefarah/yq v4+; run `brew install yq`)
+- `grep`, `find`, `sort`
 
 **Input files** (from `prd-decompose`):
 - `spec.md` — domain requirements with `[EXTRACTED]` and `[GENERATED]` markers
@@ -76,7 +78,6 @@ metadata:
 
 **Optional**:
 - `contracts/` directory with `api-contracts.yaml`, `data-contracts.yaml` for cross-domain context
-- `yq` — for structured YAML validation
 
 ## Quick Start
 

@@ -123,6 +123,18 @@ if [[ ! -f "$BOUNDARY_FILE" ]]; then
   exit 1
 fi
 
+if ! command -v yq >/dev/null 2>&1; then
+  echo "Error: yq v4+ is required." >&2
+  echo "  macOS: brew install yq" >&2
+  echo "  Linux: install mikefarah/yq v4+ from your package manager." >&2
+  exit 1
+fi
+
+if ! yq --version 2>/dev/null | grep -qE 'version v([4-9]|[1-9][0-9])\.'; then
+  echo "Error: yq v4+ (mikefarah/yq) is required." >&2
+  exit 1
+fi
+
 log "Domain directory: ${DOMAIN_DIR}"
 log "Spec file: ${SPEC_FILE}"
 log "Boundary file: ${BOUNDARY_FILE}"
@@ -200,9 +212,9 @@ if [[ "$VALIDATE_ONLY" == "true" ]]; then
   echo "Validation PASSED"
 
   # Print summary stats
-  TOTAL_TASKS=$(grep -c '^  - id:' "$TASKS_FILE" 2>/dev/null || echo "0")
-  TOTAL_PHASES=$(grep -c '^  - phase:' "$TASKS_FILE" 2>/dev/null || echo "0")
-  PARALLEL_TASKS=$(grep -c 'parallel: true' "$TASKS_FILE" 2>/dev/null || echo "0")
+  TOTAL_TASKS=$(yq -r '.tasks // [] | length' "$TASKS_FILE" 2>/dev/null || echo "0")
+  TOTAL_PHASES=$(yq -r '.execution_plan // [] | length' "$TASKS_FILE" 2>/dev/null || echo "0")
+  PARALLEL_TASKS=$(yq -r '.execution_plan // [] | map(select(.parallel == true)) | length' "$TASKS_FILE" 2>/dev/null || echo "0")
 
   echo ""
   echo "Summary:"

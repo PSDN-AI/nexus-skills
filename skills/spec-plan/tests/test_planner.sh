@@ -1007,6 +1007,396 @@ YAML
 }
 
 # ============================================================
+# Test 20: Non-numeric phase value must fail cleanly
+# ============================================================
+test_non_numeric_phase_value() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+tasks:
+  - id: TEST-001
+    name: "Only task"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "a.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Task.
+execution_plan:
+  - phase: one
+    tasks:
+      - TEST-001
+    parallel: false
+    reason: "Non-numeric value"
+validation:
+  total_tasks: 1
+  total_phases: 1
+  parallelizable_tasks: 0
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 2 "T20: non-numeric phase returns exit code 2"
+  assert_contains "$output" "Execution plan phase must be an integer (found one)" "T20: error identifies invalid phase type"
+}
+
+# ============================================================
+# Test 21: Missing execution_plan required fields must fail
+# ============================================================
+test_missing_execution_plan_fields() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+tasks:
+  - id: TEST-001
+    name: "Only task"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "a.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Task.
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+validation:
+  total_tasks: 1
+  total_phases: 1
+  parallelizable_tasks: 0
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 2 "T21: missing execution_plan fields returns exit code 2"
+  assert_contains "$output" "Execution plan phase 1 missing required field: parallel" "T21: error names missing execution_plan field"
+}
+
+# ============================================================
+# Test 22: Missing validation required fields must fail
+# ============================================================
+test_missing_validation_fields() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+tasks:
+  - id: TEST-001
+    name: "Only task"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "a.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Task.
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+    parallel: false
+    reason: "Single"
+validation: {}
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 2 "T22: missing validation fields returns exit code 2"
+  assert_contains "$output" "Validation section missing required field: total_tasks" "T22: error names missing validation field"
+}
+
+# ============================================================
+# Test 23: Spaced file paths must not false-positive conflict
+# ============================================================
+test_spaced_paths_no_false_conflict() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+tasks:
+  - id: TEST-001
+    name: "Writes guide"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "docs/User Guide.md"
+    acceptance_criteria: []
+    prompt_context: |
+      Writes the guide.
+  - id: TEST-002
+    name: "Writes manual"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "docs/User Manual.md"
+    acceptance_criteria: []
+    prompt_context: |
+      Writes the manual.
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+      - TEST-002
+    parallel: true
+    reason: "Different files with spaces"
+validation:
+  total_tasks: 2
+  total_phases: 1
+  parallelizable_tasks: 2
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 0 "T23: spaced paths do not trigger a false conflict"
+  assert_contains "$output" "Conflicts:  PASS" "T23: conflict check stays PASS for distinct spaced paths"
+}
+
+# ============================================================
+# Test 24: Missing generated_from required fields must fail
+# ============================================================
+test_missing_generated_from_fields() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from: {}
+tasks:
+  - id: TEST-001
+    name: "Only task"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "a.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Task.
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+    parallel: false
+    reason: "Single"
+validation:
+  total_tasks: 1
+  total_phases: 1
+  parallelizable_tasks: 0
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 2 "T24: missing generated_from fields returns exit code 2"
+  assert_contains "$output" "generated_from missing required field: spec" "T24: error names missing generated_from field"
+}
+
+# ============================================================
+# Test 25: Domain must match generated_from directories
+# ============================================================
+test_domain_must_match_generated_from() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  local domain_dir="$tmpdir/expected-dir"
+  mkdir -p "$domain_dir"
+
+  cat > "$domain_dir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+  cat > "$domain_dir/boundary.yaml" <<'YAML'
+domain: expected-dir
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+  cat > "$domain_dir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "wrong-name"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "expected/spec.md"
+  boundary: "expected/boundary.yaml"
+  contracts: []
+tasks:
+  - id: TEST-001
+    name: "Only task"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "a.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Task.
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+    parallel: false
+    reason: "Single"
+validation:
+  total_tasks: 1
+  total_phases: 1
+  parallelizable_tasks: 0
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$domain_dir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 2 "T25: domain mismatch returns exit code 2"
+  assert_contains "$output" "domain 'wrong-name' does not match generated_from.spec directory 'expected'" "T25: error names the mismatched domain"
+}
+
+# ============================================================
+# Test 26: Missing yq must fail fast
+# ============================================================
+test_missing_yq() {
+  local exit_code=0
+  local output
+  output=$(env PATH="/usr/bin:/bin:/usr/sbin:/sbin" "$BASH" "$PLAN_SH" "$FIXTURES/frontend-domain" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 1 "T26: missing yq returns exit code 1"
+  assert_contains "$output" "yq v4+ is required" "T26: error message names required yq dependency"
+}
+
+# ============================================================
 # Run all tests
 # ============================================================
 echo ">> spec-plan integration tests"
@@ -1033,5 +1423,12 @@ test_unknown_task_in_execution_plan
 test_duplicate_task_in_execution_plan
 test_directory_overlap_conflict
 test_non_sequential_phases
+test_non_numeric_phase_value
+test_missing_execution_plan_fields
+test_missing_validation_fields
+test_spaced_paths_no_false_conflict
+test_missing_generated_from_fields
+test_domain_must_match_generated_from
+test_missing_yq
 
 print_summary

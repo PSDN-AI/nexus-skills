@@ -52,13 +52,13 @@ runs:
         # Extract metrics from tasks.yaml
         TASKS_FILE="${DOMAIN_PATH}/tasks.yaml"
         if [[ -f "$TASKS_FILE" ]]; then
-          TOTAL_TASKS=$(grep -c '^  - id:' "$TASKS_FILE" 2>/dev/null || echo "0")
+          TOTAL_TASKS=$(yq -r '.tasks // [] | length' "$TASKS_FILE" 2>/dev/null || echo "0")
           echo "total_tasks=$TOTAL_TASKS" >> "$GITHUB_OUTPUT"
 
-          TOTAL_PHASES=$(grep -c '^  - phase:' "$TASKS_FILE" 2>/dev/null || echo "0")
+          TOTAL_PHASES=$(yq -r '.execution_plan // [] | length' "$TASKS_FILE" 2>/dev/null || echo "0")
           echo "total_phases=$TOTAL_PHASES" >> "$GITHUB_OUTPUT"
 
-          PARALLEL_TASKS=$(grep -c 'parallel: true' "$TASKS_FILE" 2>/dev/null || echo "0")
+          PARALLEL_TASKS=$(yq -r '.execution_plan // [] | map(select(.parallel == true)) | length' "$TASKS_FILE" 2>/dev/null || echo "0")
           echo "parallel_tasks=$PARALLEL_TASKS" >> "$GITHUB_OUTPUT"
 
           # Extract AC coverage from validation output
