@@ -1,0 +1,70 @@
+domain: frontend
+generated_from: ecommerce-prd.md
+generated_at: "2026-01-15T10:00:00Z"
+
+acceptance_criteria:
+  - id: AC-001
+    description: "Product grid displays at least 12 products per page with responsive layout"
+    source_section: "Product Listing Page"
+    priority: P0
+
+  - id: AC-002
+    description: "Products can be filtered by category and sorted by price or popularity"
+    source_section: "Product Listing Page"
+    priority: P0
+
+  - id: AC-003
+    description: "Product detail page shows image gallery, selectors, and reviews"
+    source_section: "Product Detail Page"
+    priority: P0
+
+  - id: AC-004
+    description: "Shopping cart persists across browser sessions"
+    source_section: "Shopping Cart"
+    priority: P0
+
+  - id: AC-005
+    description: "Cart accessible from any page via header icon"
+    source_section: "Shopping Cart"
+    priority: P1
+
+  - id: AC-006
+    description: "Checkout validates each step before progression"
+    source_section: "Checkout Flow"
+    priority: P0
+
+  - id: AC-007
+    description: "Stripe payment integration works via backend API"
+    source_section: "Checkout Flow"
+    priority: P0
+
+  - id: AC-008
+    description: "All shared components meet WCAG 2.1 AA standards"
+    source_section: "Shared UI Components"
+    priority: P1
+
+  - id: AC-009
+    description: "Initial bundle size under 500KB"
+    source_section: "Technical Details"
+    priority: P1
+
+  - id: AC-010
+    description: "Image gallery supports zoom functionality"
+    source_section: "Open Questions"
+    priority: P2
+
+constraints:
+  - type: performance
+    description: "Initial load under 3 seconds on 3G connection"
+  - type: compatibility
+    description: "Must support Chrome, Firefox, Safari, Edge latest two versions"
+  - type: security
+    description: "No PII stored in localStorage except cart items"
+
+test_hints:
+  - scenario: "Add product to cart from listing page"
+    expected: "Cart icon updates count, product appears in cart drawer"
+  - scenario: "Complete checkout flow"
+    expected: "Order confirmation page displays with order number"
+  - scenario: "Filter products by category"
+    expected: "Only products matching selected category are displayed"

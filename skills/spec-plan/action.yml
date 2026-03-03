@@ -1,0 +1,77 @@
+name: "Spec Plan Validator"
+description: "Validate tasks.yaml structure, file conflicts, and acceptance criteria coverage"
+author: "PSDN-AI"
+
+inputs:
+  domain-path:
+    description: "Path to domain folder containing spec.md, boundary.yaml, and tasks.yaml"
+    required: true
+  contracts-path:
+    description: "Path to contracts directory for cross-domain context"
+    required: false
+  validate-only:
+    description: "Only validate existing tasks.yaml (default: true)"
+    required: false
+    default: "true"
+
+outputs:
+  total-tasks:
+    description: "Number of tasks in tasks.yaml"
+    value: ${{ steps.validate.outputs.total_tasks }}
+  total-phases:
+    description: "Number of execution phases"
+    value: ${{ steps.validate.outputs.total_phases }}
+  parallel-tasks:
+    description: "Number of parallel phases"
+    value: ${{ steps.validate.outputs.parallel_tasks }}
+  ac-coverage:
+    description: "Acceptance criteria coverage percentage"
+    value: ${{ steps.validate.outputs.ac_coverage }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Validate tasks.yaml
+      id: validate
+      shell: bash
+      run: |
+        EXIT_CODE=0
+        OUTPUT=$("${{ github.action_path }}/scripts/plan.sh" \
+          "${{ inputs.domain-path }}" \
+          --validate-only \
+          ${{ inputs.contracts-path && format('--contracts {0}', inputs.contracts-path) || '' }} 2>&1) || EXIT_CODE=$?
+
+        echo "$OUTPUT"
+
+        if [[ "$EXIT_CODE" -ne 0 ]]; then
+          echo "::error::plan.sh exited with code ${EXIT_CODE}"
+          exit "$EXIT_CODE"
+        fi
+
+        # Extract metrics from tasks.yaml
+        TASKS_FILE="${{ inputs.domain-path }}/tasks.yaml"
+        if [[ -f "$TASKS_FILE" ]]; then
+          TOTAL_TASKS=$(grep -c '^  - id:' "$TASKS_FILE" 2>/dev/null || echo "0")
+          echo "total_tasks=$TOTAL_TASKS" >> "$GITHUB_OUTPUT"
+
+          TOTAL_PHASES=$(grep -c '^  - phase:' "$TASKS_FILE" 2>/dev/null || echo "0")
+          echo "total_phases=$TOTAL_PHASES" >> "$GITHUB_OUTPUT"
+
+          PARALLEL_TASKS=$(grep -c 'parallel: true' "$TASKS_FILE" 2>/dev/null || echo "0")
+          echo "parallel_tasks=$PARALLEL_TASKS" >> "$GITHUB_OUTPUT"
+
+          # Extract AC coverage from output
+          AC_COVERAGE=$(echo "$OUTPUT" | grep -oE '[0-9]+%' | head -1 || echo "0%")
+          echo "ac_coverage=$AC_COVERAGE" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Display summary
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        echo "## Spec Plan Validation" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Tasks**: ${{ steps.validate.outputs.total_tasks }}" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Phases**: ${{ steps.validate.outputs.total_phases }}" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Parallel phases**: ${{ steps.validate.outputs.parallel_tasks }}" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **AC Coverage**: ${{ steps.validate.outputs.ac_coverage }}" >> "$GITHUB_STEP_SUMMARY"

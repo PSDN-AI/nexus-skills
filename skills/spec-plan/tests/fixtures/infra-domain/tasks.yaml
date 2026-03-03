@@ -1,0 +1,131 @@
+version: "0.1.0"
+domain: "infra"
+generated_at: "2026-01-15T12:00:00Z"
+generated_from:
+  spec: "infra/spec.md"
+  boundary: "infra/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: INFRA-001
+    name: "Terraform backend and project scaffolding"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "terraform/backend.tf"
+      - "terraform/providers.tf"
+      - "terraform/variables.tf"
+      - "terraform/outputs.tf"
+    acceptance_criteria:
+      - AC-205
+    prompt_context: |
+      Set up Terraform project with S3 backend for state storage and
+      DynamoDB table for state locking. Configure AWS provider and
+      define workspace support for staging and production environments.
+
+  - id: INFRA-002
+    name: "VPC and networking module"
+    depends_on:
+      - INFRA-001
+    estimated_complexity: medium
+    files_touched:
+      - "terraform/modules/networking/main.tf"
+      - "terraform/modules/networking/variables.tf"
+      - "terraform/modules/networking/outputs.tf"
+    acceptance_criteria:
+      - AC-201
+    prompt_context: |
+      Create a VPC module with public and private subnets across two
+      availability zones. Public subnets for ALB, private subnets for
+      application servers and databases. Include NAT gateway for
+      outbound internet from private subnets. Output subnet IDs and
+      VPC ID for downstream modules.
+
+  - id: INFRA-003
+    name: "ECS Fargate compute module"
+    depends_on:
+      - INFRA-002
+    estimated_complexity: medium
+    files_touched:
+      - "terraform/modules/compute/main.tf"
+      - "terraform/modules/compute/variables.tf"
+      - "terraform/modules/compute/outputs.tf"
+      - "terraform/modules/compute/iam.tf"
+    acceptance_criteria:
+      - AC-202
+    prompt_context: |
+      Create ECS Fargate cluster module with auto-scaling based on CPU
+      utilization. Minimum 2 tasks, maximum 10. Container images from
+      ECR. Deploy into private subnets from the networking module.
+      Include IAM roles for task execution.
+
+  - id: INFRA-004
+    name: "RDS PostgreSQL database module"
+    depends_on:
+      - INFRA-002
+    estimated_complexity: medium
+    files_touched:
+      - "terraform/modules/database/main.tf"
+      - "terraform/modules/database/variables.tf"
+      - "terraform/modules/database/outputs.tf"
+    acceptance_criteria:
+      - AC-203
+    prompt_context: |
+      Create RDS module for PostgreSQL 15 in a private subnet with
+      Multi-AZ deployment. Configure automated backups with 7-day
+      retention and a read replica for reporting queries. Database
+      must not be publicly accessible.
+
+  - id: INFRA-005
+    name: "CloudWatch monitoring and alarms"
+    depends_on:
+      - INFRA-003
+      - INFRA-004
+    estimated_complexity: low
+    files_touched:
+      - "terraform/modules/monitoring/main.tf"
+      - "terraform/modules/monitoring/variables.tf"
+      - "terraform/modules/monitoring/dashboards.tf"
+    acceptance_criteria:
+      - AC-204
+    prompt_context: |
+      Create CloudWatch dashboards for application metrics, RDS performance,
+      and ALB request rates. Configure alarms for high CPU (>80%),
+      error rates above 1%, and database connection pool exhaustion.
+      Ship application logs to CloudWatch Logs.
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - INFRA-001
+    parallel: false
+    reason: "Terraform backend must be configured before any modules"
+
+  - phase: 2
+    tasks:
+      - INFRA-002
+    parallel: false
+    reason: "Networking is a dependency for compute and database"
+
+  - phase: 3
+    tasks:
+      - INFRA-003
+      - INFRA-004
+    parallel: true
+    reason: "No overlapping files_touched -- safe to parallelize"
+
+  - phase: 4
+    tasks:
+      - INFRA-005
+    parallel: false
+    reason: "Monitoring depends on compute and database resources"
+
+validation:
+  total_tasks: 5
+  total_phases: 4
+  parallelizable_tasks: 2
+  acceptance_criteria_mapped: 5
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"

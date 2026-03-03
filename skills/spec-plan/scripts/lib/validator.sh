@@ -1,0 +1,228 @@
+#!/usr/bin/env bash
+# validator.sh — Validate tasks.yaml structure and semantics
+# Sourced by plan.sh; not intended for standalone execution.
+
+# validate_tasks_yaml <tasks_yaml_path>
+# Returns 0 on success, 2 on structure error.
+# Prints validation errors to stderr.
+validate_tasks_yaml() {
+  local tasks_file="$1"
+  local errors=0
+
+  if [[ ! -f "$tasks_file" ]]; then
+    echo "Error: tasks.yaml not found: ${tasks_file}" >&2
+    return 2
+  fi
+
+  # --- Required top-level keys ---
+  local required_keys=("version:" "domain:" "generated_at:" "generated_from:" "tasks:" "execution_plan:" "validation:")
+  for key in "${required_keys[@]}"; do
+    if ! grep -q "^${key}" "$tasks_file"; then
+      echo "Error: Missing required top-level key: ${key}" >&2
+      errors=$((errors + 1))
+    fi
+  done
+
+  # --- Task-level validation ---
+  local task_count
+  task_count=$(grep -c '^  - id:' "$tasks_file" 2>/dev/null || echo "0")
+
+  if [[ "$task_count" -eq 0 ]]; then
+    echo "Error: No tasks found in tasks.yaml" >&2
+    errors=$((errors + 1))
+  fi
+
+  # Check required task fields exist somewhere after each task id
+  local task_ids=()
+  while IFS= read -r line; do
+    local tid
+    tid=$(echo "$line" | sed 's/^  - id: *//' | tr -d '"' | tr -d "'")
+    task_ids+=("$tid")
+  done < <(grep '^  - id:' "$tasks_file")
+
+  # Validate task ID format: PREFIX-NNN
+  for tid in "${task_ids[@]}"; do
+    if ! echo "$tid" | grep -qE '^[A-Z]+-[0-9]+$'; then
+      echo "Error: Invalid task ID format: ${tid} (expected PREFIX-NNN)" >&2
+      errors=$((errors + 1))
+    fi
+  done
+
+  # Check for required task fields (sampling approach — check they exist in file)
+  local required_task_fields=("name:" "depends_on:" "estimated_complexity:" "files_touched:" "acceptance_criteria:" "prompt_context:")
+  for field in "${required_task_fields[@]}"; do
+    if ! grep -q "    ${field}" "$tasks_file"; then
+      echo "Error: No task has required field: ${field}" >&2
+      errors=$((errors + 1))
+    fi
+  done
+
+  # Validate estimated_complexity values
+  while IFS= read -r line; do
+    local complexity
+    complexity=$(echo "$line" | sed 's/.*estimated_complexity: *//' | tr -d '"' | tr -d "'")
+    case "$complexity" in
+      low|medium|high) ;;
+      *)
+        echo "Error: Invalid complexity value: ${complexity} (expected low|medium|high)" >&2
+        errors=$((errors + 1))
+        ;;
+    esac
+  done < <(grep 'estimated_complexity:' "$tasks_file")
+
+  # --- DAG validation (no circular dependencies) ---
+  validate_dag "$tasks_file" || errors=$((errors + 1))
+
+  # --- Execution plan validation ---
+  local phase_count
+  phase_count=$(grep -c '^  - phase:' "$tasks_file" 2>/dev/null || echo "0")
+
+  if [[ "$phase_count" -eq 0 ]]; then
+    echo "Error: No execution phases found" >&2
+    errors=$((errors + 1))
+  fi
+
+  # Verify all tasks appear in execution plan
+  local planned_tasks=()
+  while IFS= read -r line; do
+    local ptid
+    ptid=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
+    planned_tasks+=("$ptid")
+  done < <(grep -A 100 '^execution_plan:' "$tasks_file" | grep -E '^\s+- [A-Z]+-[0-9]+' | head -50)
+
+  for tid in "${task_ids[@]}"; do
+    local found=false
+    for ptid in "${planned_tasks[@]}"; do
+      if [[ "$ptid" == "$tid" ]]; then
+        found=true
+        break
+      fi
+    done
+    if [[ "$found" == "false" ]]; then
+      echo "Warning: Task ${tid} not found in execution plan" >&2
+    fi
+  done
+
+  if [[ "$errors" -gt 0 ]]; then
+    echo "Validation failed: ${errors} error(s) found" >&2
+    return 2
+  fi
+
+  return 0
+}
+
+# validate_dag <tasks_yaml_path>
+# Checks that task dependencies form a DAG (no circular dependencies).
+# Returns 0 if valid, 1 if circular dependency detected.
+validate_dag() {
+  local tasks_file="$1"
+
+  # Extract task IDs and their dependencies
+  # Simple approach: for each task, verify its depends_on targets exist
+  # and there are no cycles via iterative dependency resolution
+  local -a all_ids=()
+  local -A deps_map=()
+
+  local current_id=""
+  local in_depends=false
+
+  while IFS= read -r line; do
+    # Detect task ID
+    if echo "$line" | grep -q '^  - id:'; then
+      current_id=$(echo "$line" | sed 's/^  - id: *//' | tr -d '"' | tr -d "'")
+      all_ids+=("$current_id")
+      deps_map["$current_id"]=""
+      in_depends=false
+    fi
+
+    # Detect depends_on section
+    if echo "$line" | grep -q '    depends_on:'; then
+      in_depends=true
+      # Check if it's an inline empty array
+      if echo "$line" | grep -q '\[\]'; then
+        in_depends=false
+      fi
+      continue
+    fi
+
+    # Collect dependency entries
+    if [[ "$in_depends" == "true" ]]; then
+      if echo "$line" | grep -qE '^\s+- [A-Z]+-[0-9]+'; then
+        local dep
+        dep=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
+        if [[ -n "${deps_map[$current_id]:-}" ]]; then
+          deps_map["$current_id"]="${deps_map[$current_id]} ${dep}"
+        else
+          deps_map["$current_id"]="$dep"
+        fi
+      else
+        in_depends=false
+      fi
+    fi
+  done < <(sed -n '/^tasks:/,/^execution_plan:/p' "$tasks_file")
+
+  # Verify all dependency targets exist
+  for tid in "${all_ids[@]}"; do
+    for dep in ${deps_map[$tid]:-}; do
+      local dep_found=false
+      for check_id in "${all_ids[@]}"; do
+        if [[ "$check_id" == "$dep" ]]; then
+          dep_found=true
+          break
+        fi
+      done
+      if [[ "$dep_found" == "false" ]]; then
+        echo "Error: Task ${tid} depends on unknown task ${dep}" >&2
+        return 1
+      fi
+    done
+  done
+
+  # Topological sort to detect cycles (Kahn's algorithm)
+  local -A in_degree=()
+  for tid in "${all_ids[@]}"; do
+    in_degree["$tid"]=0
+  done
+
+  for tid in "${all_ids[@]}"; do
+    for dep in ${deps_map[$tid]:-}; do
+      in_degree["$tid"]=$(( ${in_degree[$tid]} + 1 ))
+    done
+  done
+
+  local -a queue=()
+  for tid in "${all_ids[@]}"; do
+    if [[ "${in_degree[$tid]}" -eq 0 ]]; then
+      queue+=("$tid")
+    fi
+  done
+
+  local resolved=0
+  local -a next_queue=()
+
+  while [[ ${#queue[@]} -gt 0 ]]; do
+    next_queue=()
+    for node in "${queue[@]}"; do
+      resolved=$((resolved + 1))
+      # For each task that depends on this node, decrement its in-degree
+      for tid in "${all_ids[@]}"; do
+        for dep in ${deps_map[$tid]:-}; do
+          if [[ "$dep" == "$node" ]]; then
+            in_degree["$tid"]=$(( ${in_degree[$tid]} - 1 ))
+            if [[ "${in_degree[$tid]}" -eq 0 ]]; then
+              next_queue+=("$tid")
+            fi
+          fi
+        done
+      done
+    done
+    queue=("${next_queue[@]}")
+  done
+
+  if [[ "$resolved" -ne "${#all_ids[@]}" ]]; then
+    echo "Error: Circular dependency detected in task graph" >&2
+    return 1
+  fi
+
+  return 0
+}

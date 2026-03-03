@@ -1,0 +1,169 @@
+version: "0.1.0"
+domain: "frontend"
+generated_at: "2026-01-15T12:00:00Z"
+generated_from:
+  spec: "frontend/spec.md"
+  boundary: "frontend/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: FE-001
+    name: "Project scaffolding and build configuration"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "package.json"
+      - "tsconfig.json"
+      - "vite.config.ts"
+      - "tailwind.config.ts"
+      - "src/main.tsx"
+      - "src/App.tsx"
+      - "index.html"
+    acceptance_criteria: []
+    prompt_context: |
+      Set up a new React 18 + TypeScript project using Vite as the build tool.
+      Configure Tailwind CSS for styling, React Router for navigation, and
+      Zustand for state management. Target initial bundle size under 500KB.
+      Create the base App component with router outlet and main layout.
+
+  - id: FE-002
+    name: "Shared UI component library"
+    depends_on:
+      - FE-001
+    estimated_complexity: medium
+    files_touched:
+      - "src/components/ui/Button.tsx"
+      - "src/components/ui/Input.tsx"
+      - "src/components/ui/Modal.tsx"
+      - "src/components/ui/Toast.tsx"
+      - "src/components/ui/Spinner.tsx"
+      - "src/components/ui/Navbar.tsx"
+      - "src/components/ui/index.ts"
+    acceptance_criteria:
+      - AC-008
+    prompt_context: |
+      Create a shared UI component library with the following components:
+      Button, Input, Modal, Toast notifications, Loading spinner, and
+      Navigation bar. All components must meet WCAG 2.1 AA accessibility
+      standards. Use Tailwind CSS for styling. Export all components from
+      a barrel index file.
+
+  - id: FE-003
+    name: "Product listing page with filtering and sorting"
+    depends_on:
+      - FE-002
+    estimated_complexity: medium
+    files_touched:
+      - "src/pages/ProductList.tsx"
+      - "src/components/ProductCard.tsx"
+      - "src/components/ProductFilters.tsx"
+      - "src/hooks/useProducts.ts"
+      - "src/types/product.ts"
+    acceptance_criteria:
+      - AC-001
+      - AC-002
+    prompt_context: |
+      Build the product listing page showing products in a responsive grid
+      layout. Each product card displays image, name, price, and "Add to Cart"
+      button. Implement category filtering and sort by price or popularity.
+      Display at least 12 products per page. Use a custom hook for product
+      data fetching from the backend API.
+
+  - id: FE-004
+    name: "Product detail page with gallery and reviews"
+    depends_on:
+      - FE-002
+    estimated_complexity: medium
+    files_touched:
+      - "src/pages/ProductDetail.tsx"
+      - "src/components/ImageGallery.tsx"
+      - "src/components/ProductSelectors.tsx"
+      - "src/components/ReviewSection.tsx"
+      - "src/components/RelatedProducts.tsx"
+    acceptance_criteria:
+      - AC-003
+    prompt_context: |
+      Build the product detail page with full product information display.
+      Include an image gallery, size/color selectors, quantity picker,
+      reviews section, and related products carousel. Navigate here from
+      product cards on the listing page.
+
+  - id: FE-005
+    name: "Shopping cart with persistence"
+    depends_on:
+      - FE-002
+    estimated_complexity: medium
+    files_touched:
+      - "src/store/cartStore.ts"
+      - "src/components/CartDrawer.tsx"
+      - "src/components/CartIcon.tsx"
+      - "src/hooks/useCart.ts"
+    acceptance_criteria:
+      - AC-004
+      - AC-005
+    prompt_context: |
+      Implement the shopping cart using Zustand for state management.
+      Cart must be accessible from any page via a persistent icon in the
+      header navbar. Users can update quantities, remove items, and see
+      a running total. Cart state must persist across browser sessions
+      using localStorage. No PII should be stored in localStorage.
+
+  - id: FE-006
+    name: "Multi-step checkout flow with Stripe integration"
+    depends_on:
+      - FE-005
+    estimated_complexity: high
+    files_touched:
+      - "src/pages/Checkout.tsx"
+      - "src/components/checkout/ShippingForm.tsx"
+      - "src/components/checkout/PaymentForm.tsx"
+      - "src/components/checkout/OrderReview.tsx"
+      - "src/components/checkout/Confirmation.tsx"
+      - "src/hooks/useCheckout.ts"
+    acceptance_criteria:
+      - AC-006
+      - AC-007
+    prompt_context: |
+      Build a multi-step checkout flow: shipping address, payment method,
+      order review, and confirmation. Each step validates inputs before
+      allowing progression to the next step. Payment step integrates with
+      Stripe API via the backend checkout endpoint. Show order confirmation
+      with order number on success.
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - FE-001
+    parallel: false
+    reason: "Scaffolding must complete before any component work"
+
+  - phase: 2
+    tasks:
+      - FE-002
+    parallel: false
+    reason: "Shared components are dependencies for all page-level tasks"
+
+  - phase: 3
+    tasks:
+      - FE-003
+      - FE-004
+      - FE-005
+    parallel: true
+    reason: "No overlapping files_touched -- safe to parallelize"
+
+  - phase: 4
+    tasks:
+      - FE-006
+    parallel: false
+    reason: "Checkout depends on cart store from FE-005"
+
+validation:
+  total_tasks: 6
+  total_phases: 4
+  parallelizable_tasks: 3
+  acceptance_criteria_mapped: 9
+  acceptance_criteria_unmapped: 1
+  unmapped_criteria:
+    - AC-010
+  files_conflict_check: pass
+  spec_coverage: "95%"
