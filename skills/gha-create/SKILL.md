@@ -242,7 +242,17 @@ concurrency:
   cancel-in-progress: true
 ```
 
-**Exception**: Deployment workflows should use `cancel-in-progress: false` to avoid interrupting an active deploy.
+**Exception — Deployments**: Deployment workflows should use `cancel-in-progress: false` to avoid interrupting an active deploy.
+
+**Exception — Incremental push workflows**: When a push workflow uses incremental diff logic (e.g., `github.event.before` to test only the delta), a branch-level group like `workflow-refs/heads/main` causes new pushes to cancel in-progress runs. The cancelled run's changes are never tested because the new run only covers its own delta. Use a per-commit group key for push events to ensure every merge is validated:
+
+```yaml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+```
+
+This gives push runs unique groups (per SHA, never cancelled) while PR runs still share a group (per branch, stale runs cancelled).
 
 See [EFFICIENCY_PRACTICES.md](references/EFFICIENCY_PRACTICES.md#e3-concurrency-control) for group naming patterns.
 
@@ -326,6 +336,7 @@ Walk through the [Quick Reference Checklist](#quick-reference-checklist) for eac
 - **Forgetting the version comment on SHA pins**: `@abc123def...` without `# v4.2.2` is technically compliant but unreadable. Always add the comment so humans can see which version is pinned.
 - **Using `permissions: write-all`**: This is worse than omitting the block entirely because it signals intentional over-permissioning. Always enumerate specific permissions.
 - **Cancelling deployment workflows**: Setting `cancel-in-progress: true` on a deployment can leave infrastructure in a half-deployed state. Use `cancel-in-progress: false` for deploy jobs.
+- **Cancelling incremental push workflows**: If a push workflow tests only the delta since `github.event.before`, a branch-level concurrency group can cancel in-progress runs, leaving some merged changes untested. Use a per-commit group key for push events (see E3 exceptions).
 - **Caching with separate `actions/cache`**: The setup actions (setup-node, setup-python, etc.) have built-in cache support that is simpler and less error-prone. Use the built-in parameter.
 - **Path filtering on deployment workflows**: Deployment workflows triggered by pushes to `main` should generally NOT use path filters — you want every merged PR to trigger a deploy.
 - **OIDC is not always available**: Self-hosted runners, non-cloud targets, and some organizational policies may prevent OIDC setup. Static secrets are acceptable when OIDC is genuinely not an option. The validator treats this as advisory.
