@@ -9,10 +9,6 @@ inputs:
   contracts-path:
     description: "Path to contracts directory for cross-domain context"
     required: false
-  validate-only:
-    description: "Only validate existing tasks.yaml (default: true)"
-    required: false
-    default: "true"
 
 outputs:
   total-tasks:
