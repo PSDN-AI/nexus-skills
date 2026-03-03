@@ -54,8 +54,48 @@ Validation is skill-specific and execution-based:
 When output formats change, update sample artifacts under the skill's `examples/` directory.
 
 ## Commit & Pull Request Guidelines
-Use concise, imperative commit messages (for example, `Add .gitignore with CLAUDE.md and Agents.md`).  
-For contributions, follow `feature/<skill-name>` branch naming from `CONTRIBUTING.md`.
+
+This project follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+
+### Branch Naming
+
+Format: `<type>/<short-description>` (lowercase kebab-case).
+
+| Type | When to use | Example |
+|------|-------------|---------|
+| `feat` | New feature or skill | `feat/docker-lint-skill` |
+| `fix` | Bug fix | `fix/exit-code-in-run-scan` |
+| `docs` | Documentation only | `docs/update-contributing` |
+| `ci` | CI/CD changes | `ci/add-pr-title-check` |
+| `refactor` | Code restructure, no behavior change | `refactor/extract-scan-helpers` |
+| `test` | Adding or updating tests | `test/repo-audit-edge-cases` |
+| `chore` | Maintenance, deps, tooling | `chore/bump-shellcheck-version` |
+
+### Commit Messages
+
+Format: `<type>: <imperative description>`
+
+```
+feat: Add docker-lint skill
+fix: Correct exit code in run_scan.sh
+docs: Document branch naming convention
+```
+
+- Use imperative mood: "Add feature" not "Added feature"
+- Keep the subject line under 72 characters
+- Add an optional body after a blank line for context when needed
+
+### PR Titles
+
+Same format as commit messages: `<type>: <imperative description>`
+
+```
+feat: Add docker-lint skill (#42)
+fix: Correct exit code in run_scan.sh
+docs: Document conventional commits naming
+```
+
+### PR Description
 
 PRs should include:
 - Problem statement (what real-world issue the change solves)
