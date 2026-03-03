@@ -29,6 +29,17 @@
       "category": "devops",
       "homepage": "https://github.com/PSDN-AI/nexus-skills",
       "repository": "https://github.com/PSDN-AI/nexus-skills"
+    },
+    {
+      "name": "prd-decompose",
+      "source": "./skills/prd-decompose",
+      "description": "Decomposes a Product Requirements Document (PRD) into domain-specific specs for AI Agent consumption",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": ["prd", "product-requirements", "decomposition", "specs", "domain-driven", "ai-agents"],
+      "category": "product-engineering",
+      "homepage": "https://github.com/PSDN-AI/nexus-skills",
+      "repository": "https://github.com/PSDN-AI/nexus-skills"
     }
   ]
 }
