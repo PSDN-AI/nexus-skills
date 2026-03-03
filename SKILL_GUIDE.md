@@ -369,6 +369,7 @@ Avoid abbreviations unless universally understood (`eks`, `ci-cd`, `aws`).
 - [ ] Scripts degrade gracefully when optional tools are missing
 
 ### Nexus Requirements
+- [ ] Skill added to `.claude-plugin/marketplace.json`
 - [ ] Tests exist (if scripts are included)
 - [ ] Tests pass locally
 
