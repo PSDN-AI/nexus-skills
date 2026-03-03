@@ -34,12 +34,17 @@ runs:
     - name: Validate tasks.yaml
       id: validate
       shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        DOMAIN_PATH: ${{ inputs.domain-path }}
+        CONTRACTS_PATH: ${{ inputs.contracts-path }}
       run: |
         EXIT_CODE=0
-        OUTPUT=$("${{ github.action_path }}/scripts/plan.sh" \
-          "${{ inputs.domain-path }}" \
-          --validate-only \
-          ${{ inputs.contracts-path && format('--contracts {0}', inputs.contracts-path) || '' }} 2>&1) || EXIT_CODE=$?
+        ARGS=("$ACTION_PATH/scripts/plan.sh" "$DOMAIN_PATH" --validate-only)
+        if [[ -n "$CONTRACTS_PATH" ]]; then
+          ARGS+=(--contracts "$CONTRACTS_PATH")
+        fi
+        OUTPUT=$("${ARGS[@]}" 2>&1) || EXIT_CODE=$?
 
         echo "$OUTPUT"
 
@@ -49,7 +54,7 @@ runs:
         fi
 
         # Extract metrics from tasks.yaml
-        TASKS_FILE="${{ inputs.domain-path }}/tasks.yaml"
+        TASKS_FILE="${DOMAIN_PATH}/tasks.yaml"
         if [[ -f "$TASKS_FILE" ]]; then
           TOTAL_TASKS=$(grep -c '^  - id:' "$TASKS_FILE" 2>/dev/null || echo "0")
           echo "total_tasks=$TOTAL_TASKS" >> "$GITHUB_OUTPUT"
@@ -60,8 +65,8 @@ runs:
           PARALLEL_TASKS=$(grep -c 'parallel: true' "$TASKS_FILE" 2>/dev/null || echo "0")
           echo "parallel_tasks=$PARALLEL_TASKS" >> "$GITHUB_OUTPUT"
 
-          # Extract AC coverage from output
-          AC_COVERAGE=$(echo "$OUTPUT" | grep -oE '[0-9]+%' | head -1 || echo "0%")
+          # Extract AC coverage from validation output
+          AC_COVERAGE=$(echo "$OUTPUT" | grep 'AC Coverage' | grep -oE '[0-9]+%' | head -1 || echo "0%")
           echo "ac_coverage=$AC_COVERAGE" >> "$GITHUB_OUTPUT"
         fi
 
