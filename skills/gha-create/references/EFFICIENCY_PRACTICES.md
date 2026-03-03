@@ -205,6 +205,24 @@ concurrency:
   cancel-in-progress: false  # Never cancel an in-progress deployment
 ```
 
+### Incremental Push Exception
+
+When a push workflow uses incremental diff logic (e.g., testing only the delta since `github.event.before`), a branch-level concurrency group causes a coverage gap: if commit B cancels commit A's run, B only tests the A-to-B delta — A's changes are never validated on the default branch.
+
+Use a per-commit group key for push events so each merge runs independently, while PR runs still cancel stale runs on the same branch:
+
+```yaml
+# BAD: Branch-level group cancels incremental push runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# GOOD: Push runs get per-SHA groups, PR runs share per-branch groups
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+```
+
 ### Queue Behavior
 
 When `cancel-in-progress: false` is set:
