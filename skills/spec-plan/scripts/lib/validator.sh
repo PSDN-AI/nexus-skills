@@ -82,26 +82,33 @@ validate_tasks_yaml() {
     errors=$((errors + 1))
   fi
 
-  # Verify all tasks appear in execution plan
-  local planned_tasks=()
-  while IFS= read -r line; do
-    local ptid
-    ptid=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
-    planned_tasks+=("$ptid")
-  done < <(grep -A 100 '^execution_plan:' "$tasks_file" | grep -E '^\s+- [A-Z]+-[0-9]+' | head -50)
+  # Build task-to-phase mapping from execution_plan
+  local -A task_phase_map=()
+  local current_phase=""
+  local exec_section
+  exec_section=$(sed -n '/^execution_plan:/,/^validation:/p' "$tasks_file")
 
+  while IFS= read -r line; do
+    if echo "$line" | grep -q '  - phase:'; then
+      current_phase=$(echo "$line" | sed 's/.*phase: *//' | tr -d '"' | tr -d ' ')
+    fi
+    if [[ -n "$current_phase" ]] && echo "$line" | grep -qE '^\s+- [A-Z]+-[0-9]+'; then
+      local ptid
+      ptid=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
+      task_phase_map["$ptid"]="$current_phase"
+    fi
+  done <<< "$exec_section"
+
+  # Verify all tasks appear in execution plan (error, not warning)
   for tid in "${task_ids[@]}"; do
-    local found=false
-    for ptid in "${planned_tasks[@]}"; do
-      if [[ "$ptid" == "$tid" ]]; then
-        found=true
-        break
-      fi
-    done
-    if [[ "$found" == "false" ]]; then
-      echo "Warning: Task ${tid} not found in execution plan" >&2
+    if [[ -z "${task_phase_map[$tid]:-}" ]]; then
+      echo "Error: Task ${tid} not found in execution plan" >&2
+      errors=$((errors + 1))
     fi
   done
+
+  # Verify execution plan respects dependency ordering
+  validate_phase_ordering "$tasks_file" task_phase_map || errors=$((errors + 1))
 
   if [[ "$errors" -gt 0 ]]; then
     echo "Validation failed: ${errors} error(s) found" >&2
@@ -224,5 +231,72 @@ validate_dag() {
     return 1
   fi
 
+  return 0
+}
+
+# validate_phase_ordering <tasks_yaml_path> <task_phase_map_nameref>
+# Checks that every task's dependencies are in strictly earlier phases.
+# Returns 0 if valid, 1 if a dependency violation is found.
+validate_phase_ordering() {
+  local tasks_file="$1"
+  local -n phase_map=$2
+  local violations=0
+
+  # Re-extract deps_map from tasks section
+  local -a all_ids=()
+  local -A deps_map=()
+  local current_id=""
+  local in_depends=false
+
+  while IFS= read -r line; do
+    if echo "$line" | grep -q '^  - id:'; then
+      current_id=$(echo "$line" | sed 's/^  - id: *//' | tr -d '"' | tr -d "'")
+      all_ids+=("$current_id")
+      deps_map["$current_id"]=""
+      in_depends=false
+    fi
+
+    if echo "$line" | grep -q '    depends_on:'; then
+      in_depends=true
+      if echo "$line" | grep -q '\[\]'; then
+        in_depends=false
+      fi
+      continue
+    fi
+
+    if [[ "$in_depends" == "true" ]]; then
+      if echo "$line" | grep -qE '^\s+- [A-Z]+-[0-9]+'; then
+        local dep
+        dep=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
+        if [[ -n "${deps_map[$current_id]:-}" ]]; then
+          deps_map["$current_id"]="${deps_map[$current_id]} ${dep}"
+        else
+          deps_map["$current_id"]="$dep"
+        fi
+      else
+        in_depends=false
+      fi
+    fi
+  done < <(sed -n '/^tasks:/,/^execution_plan:/p' "$tasks_file")
+
+  # Check: for every task, all its dependencies must be in earlier phases
+  for tid in "${all_ids[@]}"; do
+    local tid_phase="${phase_map[$tid]:-}"
+    [[ -z "$tid_phase" ]] && continue  # already reported as missing from plan
+
+    for dep in ${deps_map[$tid]:-}; do
+      local dep_phase="${phase_map[$dep]:-}"
+      [[ -z "$dep_phase" ]] && continue
+
+      if [[ "$dep_phase" -ge "$tid_phase" ]]; then
+        echo "Error: Task ${tid} (phase ${tid_phase}) depends on ${dep} (phase ${dep_phase}) — dependency must be in an earlier phase" >&2
+        violations=$((violations + 1))
+      fi
+    done
+  done
+
+  if [[ "$violations" -gt 0 ]]; then
+    return 1
+  fi
   return 0
 }

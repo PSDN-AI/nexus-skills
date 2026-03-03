@@ -409,6 +409,170 @@ YAML
 }
 
 # ============================================================
+# Test 12: Phase ordering must respect depends_on
+# ============================================================
+test_phase_ordering_violation() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+
+  # TEST-001 in phase 1 depends on TEST-002 in phase 2 — invalid
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: TEST-001
+    name: "Runs first but depends on phase 2"
+    depends_on:
+      - TEST-002
+    estimated_complexity: low
+    files_touched:
+      - "a.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Depends on TEST-002.
+
+  - id: TEST-002
+    name: "Runs second but is a dependency"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "b.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Should run first.
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+    parallel: false
+    reason: "Wrong order"
+
+  - phase: 2
+    tasks:
+      - TEST-002
+    parallel: false
+    reason: "Should be first"
+
+validation:
+  total_tasks: 2
+  total_phases: 2
+  parallelizable_tasks: 0
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 2 "T12: phase ordering violation returns exit code 2"
+  assert_contains "$output" "depends on TEST-002 (phase 2)" "T12: error names the violating dependency"
+}
+
+# ============================================================
+# Test 13: Task missing from execution plan must fail
+# ============================================================
+test_task_missing_from_plan() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: TEST-001
+    name: "In the plan"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "a.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Included in execution plan.
+
+  - id: TEST-002
+    name: "Missing from plan"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "b.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Not in execution plan.
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+    parallel: false
+    reason: "Only TEST-001"
+
+validation:
+  total_tasks: 2
+  total_phases: 1
+  parallelizable_tasks: 0
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 2 "T13: task missing from execution plan returns exit code 2"
+  assert_contains "$output" "TEST-002 not found in execution plan" "T13: error names the missing task"
+}
+
+# ============================================================
 # Run all tests
 # ============================================================
 echo ">> spec-plan integration tests"
@@ -427,5 +591,7 @@ test_idempotency
 test_empty_spec
 test_custom_contracts
 test_unmapped_criteria_not_counted
+test_phase_ordering_violation
+test_task_missing_from_plan
 
 print_summary
