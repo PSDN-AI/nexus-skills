@@ -871,6 +871,142 @@ YAML
 }
 
 # ============================================================
+# Test 18: Directory overlap in parallel phase must conflict
+# ============================================================
+test_directory_overlap_conflict() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+tasks:
+  - id: TEST-001
+    name: "Writes directory"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "src/components/"
+    acceptance_criteria: []
+    prompt_context: |
+      Writes to components dir.
+  - id: TEST-002
+    name: "Writes file in same directory"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "src/components/Button.tsx"
+    acceptance_criteria: []
+    prompt_context: |
+      Writes Button.
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+      - TEST-002
+    parallel: true
+    reason: "Directory overlap"
+validation:
+  total_tasks: 2
+  total_phases: 1
+  parallelizable_tasks: 2
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 3 "T18: directory overlap in parallel phase returns exit code 3"
+  assert_contains "$output" "Conflicts:  FAIL" "T18: conflict check reports FAIL"
+}
+
+# ============================================================
+# Test 19: Non-sequential phase numbering must fail
+# ============================================================
+test_non_sequential_phases() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+tasks:
+  - id: TEST-001
+    name: "Only task"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "a.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Task.
+execution_plan:
+  - phase: 2
+    tasks:
+      - TEST-001
+    parallel: false
+    reason: "Starts at 2"
+validation:
+  total_tasks: 1
+  total_phases: 1
+  parallelizable_tasks: 0
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 2 "T19: non-sequential phases returns exit code 2"
+  assert_contains "$output" "expected 1, found 2" "T19: error identifies the gap"
+}
+
+# ============================================================
 # Run all tests
 # ============================================================
 echo ">> spec-plan integration tests"
@@ -895,5 +1031,7 @@ test_per_task_required_fields
 test_prompt_context_ac_not_counted
 test_unknown_task_in_execution_plan
 test_duplicate_task_in_execution_plan
+test_directory_overlap_conflict
+test_non_sequential_phases
 
 print_summary

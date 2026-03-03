@@ -66,8 +66,8 @@ metadata:
 
 ## Prerequisites
 
-**Required** (built-in on macOS/Linux):
-- `bash` (4.0+), `grep`, `sed`, `awk`, `find`, `sort`, `comm`
+**Required**:
+- `bash` (4.0+; macOS ships 3.2 — run `brew install bash` to upgrade), `grep`, `sed`, `awk`, `find`, `sort`, `comm`
 
 **Input files** (from `prd-decompose`):
 - `spec.md` — domain requirements with `[EXTRACTED]` and `[GENERATED]` markers

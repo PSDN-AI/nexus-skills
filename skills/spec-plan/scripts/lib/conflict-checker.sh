@@ -2,6 +2,20 @@
 # conflict-checker.sh — Detect files_touched overlaps in parallel phases
 # Sourced by plan.sh; not intended for standalone execution.
 
+# paths_conflict <path_a> <path_b>
+# Returns 0 if two paths overlap: exact match, or one is a directory
+# prefix of the other (directory entries end with /).
+paths_conflict() {
+  local a="$1" b="$2"
+  # Exact match
+  [[ "$a" == "$b" ]] && return 0
+  # a is a directory that contains b
+  if [[ "$a" == */ ]] && [[ "$b" == "$a"* ]]; then return 0; fi
+  # b is a directory that contains a
+  if [[ "$b" == */ ]] && [[ "$a" == "$b"* ]]; then return 0; fi
+  return 1
+}
+
 # check_file_conflicts <tasks_yaml_path>
 # Returns 0 if no conflicts, 3 if overlapping files in parallel phases.
 check_file_conflicts() {
@@ -111,17 +125,24 @@ check_phase_conflicts() {
       local files_a="${task_files[$tid_a]}"
       local files_b="${task_files[$tid_b]}"
 
-      # Find intersection
-      local overlap
-      overlap=$(comm -12 \
-        <(echo "$files_a" | tr ' ' '\n' | sort) \
-        <(echo "$files_b" | tr ' ' '\n' | sort) 2>/dev/null)
+      # Find conflicts: exact match OR directory containment
+      local -a conflicts_found=()
+      local fa fb
+      while IFS= read -r fa; do
+        [[ -z "$fa" ]] && continue
+        while IFS= read -r fb; do
+          [[ -z "$fb" ]] && continue
+          if paths_conflict "$fa" "$fb"; then
+            conflicts_found+=("${fa} <-> ${fb}")
+          fi
+        done < <(echo "$files_b" | tr ' ' '\n')
+      done < <(echo "$files_a" | tr ' ' '\n')
 
-      if [[ -n "$overlap" ]]; then
+      if [[ ${#conflicts_found[@]} -gt 0 ]]; then
         echo "Error: files_touched conflict in phase ${phase_num}:" >&2
         echo "  Tasks ${tid_a} and ${tid_b} share files:" >&2
-        echo "$overlap" | while IFS= read -r f; do
-          echo "    - ${f}" >&2
+        for conflict in "${conflicts_found[@]}"; do
+          echo "    - ${conflict}" >&2
         done
         return 1
       fi

@@ -96,9 +96,10 @@ validate_tasks_yaml() {
   fi
 
   # Build task-to-phase mapping from execution_plan
-  # Also detect unknown tasks and duplicates
+  # Also detect unknown tasks, duplicates, and collect phase numbers
   local -A task_phase_map=()
   local -A task_seen_count=()
+  local -a phase_numbers=()
   local current_phase=""
   local exec_section
   exec_section=$(sed -n '/^execution_plan:/,/^validation:/p' "$tasks_file")
@@ -106,6 +107,7 @@ validate_tasks_yaml() {
   while IFS= read -r line; do
     if echo "$line" | grep -q '  - phase:'; then
       current_phase=$(echo "$line" | sed 's/.*phase: *//' | tr -d '"' | tr -d ' ')
+      phase_numbers+=("$current_phase")
     fi
     if [[ -n "$current_phase" ]] && echo "$line" | grep -qE '^\s+- [A-Z]+-[0-9]+'; then
       local ptid
@@ -114,6 +116,17 @@ validate_tasks_yaml() {
       task_seen_count["$ptid"]=$(( ${task_seen_count[$ptid]:-0} + 1 ))
     fi
   done <<< "$exec_section"
+
+  # Verify phases are sequential integers starting from 1
+  local expected_phase=1
+  for pnum in "${phase_numbers[@]}"; do
+    if [[ "$pnum" -ne "$expected_phase" ]]; then
+      echo "Error: Execution plan phases must be sequential from 1 (expected ${expected_phase}, found ${pnum})" >&2
+      errors=$((errors + 1))
+      break
+    fi
+    expected_phase=$((expected_phase + 1))
+  done
 
   # Verify all declared tasks appear in execution plan
   for tid in "${task_ids[@]}"; do
@@ -147,7 +160,7 @@ validate_tasks_yaml() {
   done
 
   # Verify execution plan respects dependency ordering
-  validate_phase_ordering "$tasks_file" task_phase_map || errors=$((errors + 1))
+  validate_phase_ordering "$tasks_file" || errors=$((errors + 1))
 
   if [[ "$errors" -gt 0 ]]; then
     echo "Validation failed: ${errors} error(s) found" >&2
@@ -273,15 +286,31 @@ validate_dag() {
   return 0
 }
 
-# validate_phase_ordering <tasks_yaml_path> <task_phase_map_nameref>
+# validate_phase_ordering <tasks_yaml_path>
 # Checks that every task's dependencies are in strictly earlier phases.
 # Returns 0 if valid, 1 if a dependency violation is found.
 validate_phase_ordering() {
   local tasks_file="$1"
-  local -n phase_map=$2
   local violations=0
 
-  # Re-extract deps_map from tasks section
+  # Build phase map from execution_plan
+  local -A phase_map=()
+  local cur_phase=""
+  local ep_section
+  ep_section=$(sed -n '/^execution_plan:/,/^validation:/p' "$tasks_file")
+
+  while IFS= read -r line; do
+    if echo "$line" | grep -q '  - phase:'; then
+      cur_phase=$(echo "$line" | sed 's/.*phase: *//' | tr -d '"' | tr -d ' ')
+    fi
+    if [[ -n "$cur_phase" ]] && echo "$line" | grep -qE '^\s+- [A-Z]+-[0-9]+'; then
+      local ptid
+      ptid=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
+      phase_map["$ptid"]="$cur_phase"
+    fi
+  done <<< "$ep_section"
+
+  # Extract deps_map from tasks section
   local -a all_ids=()
   local -A deps_map=()
   local current_id=""
