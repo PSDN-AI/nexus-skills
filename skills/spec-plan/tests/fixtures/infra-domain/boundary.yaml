@@ -1,0 +1,41 @@
+domain: infra
+generated_from: ecommerce-prd.md
+generated_at: "2026-01-15T10:00:00Z"
+
+acceptance_criteria:
+  - id: AC-201
+    description: "VPC with public/private subnets across two AZs is provisioned"
+    source_section: "Networking"
+    priority: P0
+
+  - id: AC-202
+    description: "ECS Fargate cluster with auto-scaling is operational"
+    source_section: "Compute"
+    priority: P0
+
+  - id: AC-203
+    description: "RDS PostgreSQL with Multi-AZ and automated backups is running"
+    source_section: "Database"
+    priority: P0
+
+  - id: AC-204
+    description: "CloudWatch dashboards and alarms are configured"
+    source_section: "Monitoring"
+    priority: P1
+
+  - id: AC-205
+    description: "Terraform state uses S3 backend with DynamoDB locking"
+    source_section: "Technical Details"
+    priority: P0
+
+constraints:
+  - type: security
+    description: "Database must not be publicly accessible"
+  - type: scalability
+    description: "Auto-scaling must handle 10x traffic spikes"
+
+test_hints:
+  - scenario: "Deploy infrastructure to staging workspace"
+    expected: "All resources provisioned, terraform plan shows no drift"
+  - scenario: "Simulate high CPU on ECS"
+    expected: "Auto-scaling adds tasks up to maximum of 10"

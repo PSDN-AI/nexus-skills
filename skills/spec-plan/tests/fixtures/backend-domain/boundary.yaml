@@ -1,0 +1,46 @@
+domain: backend
+generated_from: ecommerce-prd.md
+generated_at: "2026-01-15T10:00:00Z"
+
+acceptance_criteria:
+  - id: AC-101
+    description: "Database schema supports users, products, categories, orders with timestamps"
+    source_section: "Database Schema"
+    priority: P0
+
+  - id: AC-102
+    description: "User registration and JWT-based authentication works"
+    source_section: "User Authentication"
+    priority: P0
+
+  - id: AC-103
+    description: "Product listing API supports pagination, filtering, and sorting"
+    source_section: "Product API"
+    priority: P0
+
+  - id: AC-104
+    description: "Order creation validates stock and processes payment"
+    source_section: "Order Processing"
+    priority: P0
+
+  - id: AC-105
+    description: "Password reset via email is functional"
+    source_section: "User Authentication"
+    priority: P1
+
+  - id: AC-106
+    description: "API responses follow consistent JSON error format"
+    source_section: "Product API"
+    priority: P1
+
+constraints:
+  - type: performance
+    description: "API response time under 200ms for product listing"
+  - type: security
+    description: "All endpoints require authentication except product listing and detail"
+
+test_hints:
+  - scenario: "Create a new user and authenticate"
+    expected: "JWT token returned with 24-hour expiry"
+  - scenario: "Place an order with valid cart"
+    expected: "Order created with status 'paid', confirmation email sent"

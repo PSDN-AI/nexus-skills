@@ -40,6 +40,17 @@
       "category": "product-engineering",
       "homepage": "https://github.com/PSDN-AI/nexus-skills",
       "repository": "https://github.com/PSDN-AI/nexus-skills"
+    },
+    {
+      "name": "spec-plan",
+      "source": "./skills/spec-plan",
+      "description": "Converts a decomposed domain folder into an executable task graph with dependency ordering and parallelization strategy",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": ["planning", "task-graph", "decomposition", "dependency-ordering", "parallelization", "ai-agents"],
+      "category": "product-engineering",
+      "homepage": "https://github.com/PSDN-AI/nexus-skills",
+      "repository": "https://github.com/PSDN-AI/nexus-skills"
     }
   ]
 }

@@ -72,6 +72,24 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
+      - name: Install yq
+        if: ${{ matrix.skill == 'spec-plan' }}
+        run: |
+          YQ_VERSION="v4.49.1"
+          case "$(uname -m)" in
+            x86_64) YQ_ASSET="yq_linux_amd64" ;;
+            aarch64|arm64) YQ_ASSET="yq_linux_arm64" ;;
+            *)
+              echo "Unsupported architecture: $(uname -m)" >&2
+              exit 1
+              ;;
+          esac
+
+          sudo wget -qO /usr/local/bin/yq \
+            "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_ASSET}"
+          sudo chmod +x /usr/local/bin/yq
+          yq --version | grep -q "version ${YQ_VERSION}"
+
       - name: Run tests
         run: bash "skills/${{ matrix.skill }}/tests/run_tests.sh"
 
