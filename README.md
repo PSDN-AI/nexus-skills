@@ -49,6 +49,7 @@ git clone https://github.com/PSDN-AI/nexus-skills.git
 |-------|----------|-------------|
 | [repo-audit](skills/repo-audit/) | Security & Compliance | Scan for secrets, quality issues, and compliance problems before going public |
 | [prd-decompose](skills/prd-decompose/) | Product Engineering | Decompose a PRD into domain-specific specs for AI Agent consumption |
+| [gha-create](skills/gha-create/) | CI/CD & DevOps | Generate GitHub Actions workflows with elite security and efficiency practices |
 
 ## Contributing
 

@@ -1,0 +1,44 @@
+# AFTER: The same CI workflow, hardened with gha-create rules
+# Every change from before.yml is annotated with the rule it satisfies.
+# SHA pins verified: 2026-02-28. See references/SHA_LOOKUP.md to check for updates.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:                                                       # E1: Path filtering
+      - 'src/**'
+      - 'package*.json'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    paths:                                                       # E1: Path filtering
+      - 'src/**'
+      - 'package*.json'
+      - '.github/workflows/ci.yml'
+
+permissions:                                                     # S2: Least-privilege
+  contents: read
+
+concurrency:                                                     # E3: Concurrency control
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 (S1)
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0 (S1)
+        with:
+          node-version: 20
+          cache: 'npm'                                           # E2: Native caching
+      - run: npm ci
+      - run: npm test
+      - name: Log PR info
+        env:                                                     # S4: Map to env first
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          echo "PR title: $PR_TITLE"                             # S4: Use shell variable
+          echo "PR author: $HEAD_REF"

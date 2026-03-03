@@ -1,0 +1,22 @@
+# BEFORE: A naive but functional CI workflow
+# This workflow violates multiple gha-create rules.
+# See after.yml for the hardened version.
+
+name: CI
+on: [push, pull_request]                                        # No path filtering (violates E1)
+                                                                 # No permissions block (violates S2)
+                                                                 # No concurrency block (violates E3)
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4                                # Mutable tag (violates S1)
+      - uses: actions/setup-node@v4                              # Mutable tag (violates S1)
+        with:                                                    # No cache parameter (violates E2)
+          node-version: 20
+      - run: npm ci
+      - run: npm test
+      - name: Log PR info
+        run: |
+          echo "PR title: ${{ github.event.pull_request.title }}"  # Injection risk (violates S4)
+          echo "PR author: ${{ github.event.pull_request.head.ref }}"
