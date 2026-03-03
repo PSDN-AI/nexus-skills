@@ -648,6 +648,229 @@ YAML
 }
 
 # ============================================================
+# Test 15: AC IDs in prompt_context must not count as mapped
+# ============================================================
+test_prompt_context_ac_not_counted() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+
+acceptance_criteria:
+  - id: AC-001
+    description: "Critical requirement"
+    source_section: "Test"
+    priority: P0
+
+constraints: []
+test_hints: []
+YAML
+
+  # AC-001 appears only in prompt_context, not in acceptance_criteria
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: TEST-001
+    name: "Placeholder"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "README.md"
+    acceptance_criteria: []
+    prompt_context: |
+      Notes for the implementer:
+      - AC-001
+      This is only descriptive text.
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+    parallel: false
+    reason: "Single task"
+
+validation:
+  total_tasks: 1
+  total_phases: 1
+  parallelizable_tasks: 0
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 1
+  unmapped_criteria:
+    - AC-001
+  files_conflict_check: pass
+  spec_coverage: "0%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 4 "T15: AC IDs in prompt_context do not satisfy coverage (exit 4)"
+  assert_contains "$output" "Coverage:   FAIL" "T15: coverage check reports FAIL"
+}
+
+# ============================================================
+# Test 16: Unknown task in execution plan must fail
+# ============================================================
+test_unknown_task_in_execution_plan() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+
+  # TEST-999 is not declared under tasks:
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: TEST-001
+    name: "Only declared task"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "a.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Full context.
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+      - TEST-999
+    parallel: false
+    reason: "Contains an undeclared task"
+
+validation:
+  total_tasks: 1
+  total_phases: 1
+  parallelizable_tasks: 0
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 2 "T16: unknown task in execution plan returns exit code 2"
+  assert_contains "$output" "Unknown task TEST-999 in execution plan" "T16: error names the unknown task"
+}
+
+# ============================================================
+# Test 17: Duplicate task in execution plan must fail
+# ============================================================
+test_duplicate_task_in_execution_plan() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+
+  # TEST-001 appears in two phases
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: TEST-001
+    name: "Only task"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "a.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Full context.
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+    parallel: false
+    reason: "First appearance"
+
+  - phase: 2
+    tasks:
+      - TEST-001
+    parallel: false
+    reason: "Duplicate appearance"
+
+validation:
+  total_tasks: 1
+  total_phases: 2
+  parallelizable_tasks: 0
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 2 "T17: duplicate task in execution plan returns exit code 2"
+  assert_contains "$output" "Task TEST-001 appears 2 times in execution plan" "T17: error names the duplicate task"
+}
+
+# ============================================================
 # Run all tests
 # ============================================================
 echo ">> spec-plan integration tests"
@@ -669,5 +892,8 @@ test_unmapped_criteria_not_counted
 test_phase_ordering_violation
 test_task_missing_from_plan
 test_per_task_required_fields
+test_prompt_context_ac_not_counted
+test_unknown_task_in_execution_plan
+test_duplicate_task_in_execution_plan
 
 print_summary

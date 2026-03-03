@@ -96,7 +96,9 @@ validate_tasks_yaml() {
   fi
 
   # Build task-to-phase mapping from execution_plan
+  # Also detect unknown tasks and duplicates
   local -A task_phase_map=()
+  local -A task_seen_count=()
   local current_phase=""
   local exec_section
   exec_section=$(sed -n '/^execution_plan:/,/^validation:/p' "$tasks_file")
@@ -109,13 +111,37 @@ validate_tasks_yaml() {
       local ptid
       ptid=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
       task_phase_map["$ptid"]="$current_phase"
+      task_seen_count["$ptid"]=$(( ${task_seen_count[$ptid]:-0} + 1 ))
     fi
   done <<< "$exec_section"
 
-  # Verify all tasks appear in execution plan (error, not warning)
+  # Verify all declared tasks appear in execution plan
   for tid in "${task_ids[@]}"; do
     if [[ -z "${task_phase_map[$tid]:-}" ]]; then
       echo "Error: Task ${tid} not found in execution plan" >&2
+      errors=$((errors + 1))
+    fi
+  done
+
+  # Verify no unknown tasks in execution plan
+  for ptid in "${!task_phase_map[@]}"; do
+    local known=false
+    for tid in "${task_ids[@]}"; do
+      if [[ "$tid" == "$ptid" ]]; then
+        known=true
+        break
+      fi
+    done
+    if [[ "$known" == "false" ]]; then
+      echo "Error: Unknown task ${ptid} in execution plan (not declared in tasks)" >&2
+      errors=$((errors + 1))
+    fi
+  done
+
+  # Verify no duplicate tasks across phases
+  for ptid in "${!task_seen_count[@]}"; do
+    if [[ "${task_seen_count[$ptid]}" -gt 1 ]]; then
+      echo "Error: Task ${ptid} appears ${task_seen_count[$ptid]} times in execution plan (must appear exactly once)" >&2
       errors=$((errors + 1))
     fi
   done

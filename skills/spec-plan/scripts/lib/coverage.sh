@@ -36,18 +36,37 @@ check_ac_coverage() {
     return 0
   fi
 
-  # Extract mapped AC IDs from tasks section only (not validation.unmapped_criteria)
+  # Extract mapped AC IDs only from acceptance_criteria blocks inside tasks
   local -a mapped_ac_ids=()
   local tasks_section
   tasks_section=$(sed -n '/^tasks:/,/^execution_plan:/p' "$tasks_file")
 
+  local in_ac_block=false
   while IFS= read -r line; do
-    local ac_id
-    ac_id=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
-    if echo "$ac_id" | grep -qE '^AC-[0-9]+$'; then
-      mapped_ac_ids+=("$ac_id")
+    # Enter acceptance_criteria block
+    if echo "$line" | grep -q '    acceptance_criteria:'; then
+      in_ac_block=true
+      # Handle inline empty array
+      if echo "$line" | grep -q '\[\]'; then
+        in_ac_block=false
+      fi
+      continue
     fi
-  done < <(echo "$tasks_section" | grep -E '^\s+- AC-[0-9]+' 2>/dev/null)
+
+    # Exit acceptance_criteria block on next task field or new task
+    if [[ "$in_ac_block" == "true" ]]; then
+      if echo "$line" | grep -qE '^    [a-z_]+:|^  - id:'; then
+        in_ac_block=false
+        continue
+      fi
+      # Collect AC IDs within the block
+      local ac_id
+      ac_id=$(echo "$line" | sed 's/.*- //' | tr -d '"' | tr -d "'" | tr -d ' ')
+      if echo "$ac_id" | grep -qE '^AC-[0-9]+$'; then
+        mapped_ac_ids+=("$ac_id")
+      fi
+    fi
+  done <<< "$tasks_section"
 
   # Find unmapped ACs
   local -a unmapped=()
