@@ -573,6 +573,81 @@ YAML
 }
 
 # ============================================================
+# Test 14: Per-task required field validation
+# ============================================================
+test_per_task_required_fields() {
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf -- "$tmpdir"' RETURN
+
+  cat > "$tmpdir/spec.md" <<'SPEC'
+# Test
+[EXTRACTED] Placeholder.
+SPEC
+
+  cat > "$tmpdir/boundary.yaml" <<'YAML'
+domain: test
+generated_from: test.md
+generated_at: "2026-01-01T00:00:00Z"
+acceptance_criteria: []
+constraints: []
+test_hints: []
+YAML
+
+  # TEST-001 is complete; TEST-002 is missing files_touched, acceptance_criteria, prompt_context
+  cat > "$tmpdir/tasks.yaml" <<'YAML'
+version: "0.1.0"
+domain: "test"
+generated_at: "2026-01-01T00:00:00Z"
+generated_from:
+  spec: "test/spec.md"
+  boundary: "test/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: TEST-001
+    name: "Complete task"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "a.ts"
+    acceptance_criteria: []
+    prompt_context: |
+      Full context.
+
+  - id: TEST-002
+    name: "Incomplete task"
+    depends_on: []
+    estimated_complexity: low
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - TEST-001
+      - TEST-002
+    parallel: true
+    reason: "Both in phase 1"
+
+validation:
+  total_tasks: 2
+  total_phases: 1
+  parallelizable_tasks: 2
+  acceptance_criteria_mapped: 0
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
+YAML
+
+  local exit_code=0
+  local output
+  output=$("$BASH" "$PLAN_SH" "$tmpdir" --validate-only 2>&1) || exit_code=$?
+
+  assert_exit_code "$exit_code" 2 "T14: incomplete task fails validation (exit 2)"
+  assert_contains "$output" "TEST-002 missing required field: prompt_context" "T14: identifies missing field and task"
+}
+
+# ============================================================
 # Run all tests
 # ============================================================
 echo ">> spec-plan integration tests"
@@ -593,5 +668,6 @@ test_custom_contracts
 test_unmapped_criteria_not_counted
 test_phase_ordering_violation
 test_task_missing_from_plan
+test_per_task_required_fields
 
 print_summary

@@ -48,13 +48,26 @@ validate_tasks_yaml() {
     fi
   done
 
-  # Check for required task fields (sampling approach — check they exist in file)
+  # Check required fields per task (not sampling — every task must have every field)
   local required_task_fields=("name:" "depends_on:" "estimated_complexity:" "files_touched:" "acceptance_criteria:" "prompt_context:")
-  for field in "${required_task_fields[@]}"; do
-    if ! grep -q "    ${field}" "$tasks_file"; then
-      echo "Error: No task has required field: ${field}" >&2
-      errors=$((errors + 1))
+  local tasks_section
+  tasks_section=$(sed -n '/^tasks:/,/^execution_plan:/p' "$tasks_file")
+
+  for tid in "${task_ids[@]}"; do
+    # Extract block for this task: from "- id: TID" to next "- id:" or end
+    local task_block
+    task_block=$(echo "$tasks_section" | sed -n "/^  - id: ${tid}/,/^  - id:/p" | sed '$ d')
+    # If last task, sed range won't match a closing "- id:", so result is empty
+    if [[ -z "$task_block" ]]; then
+      task_block=$(echo "$tasks_section" | sed -n "/^  - id: ${tid}/,\$p")
     fi
+
+    for field in "${required_task_fields[@]}"; do
+      if ! echo "$task_block" | grep -q "    ${field}"; then
+        echo "Error: Task ${tid} missing required field: ${field}" >&2
+        errors=$((errors + 1))
+      fi
+    done
   done
 
   # Validate estimated_complexity values
