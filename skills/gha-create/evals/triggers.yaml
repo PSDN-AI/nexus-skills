@@ -1,0 +1,28 @@
+# Trigger tests for gha-create
+#
+# Verifies that the skill's description triggers on relevant prompts
+# and does NOT trigger on irrelevant ones.
+
+should_trigger:
+  - "create a GitHub Actions workflow for CI"
+  - "write a deployment pipeline using GitHub Actions"
+  - "harden our existing GitHub Actions workflow"
+  - "add SHA-pinned actions to this workflow file"
+  - "set up a CI workflow with proper permissions and caching"
+  - "review this GitHub Actions YAML for security issues"
+  - "generate a release workflow with OIDC authentication"
+  - "our CI workflow needs concurrency controls and path filtering"
+  - "create a workflow that runs tests on pull requests"
+  - "add least-privilege permissions to this GitHub Actions file"
+
+should_not_trigger:
+  - "set up a Jenkins pipeline"
+  - "configure CircleCI for this project"
+  - "deploy to AWS using Terraform"
+  - "scan this repo for hardcoded secrets"
+  - "write a bash script to automate deployments"
+  - "create a Dockerfile for this service"
+  - "set up GitLab CI for our monorepo"
+  - "configure Kubernetes health checks"
+  - "write a unit test for the API endpoint"
+  - "manage SSH keys for server access"

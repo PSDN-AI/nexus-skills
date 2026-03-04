@@ -1,0 +1,28 @@
+# Trigger tests for agent-launcher
+#
+# Verifies that the skill's description triggers on relevant prompts
+# and does NOT trigger on irrelevant ones.
+
+should_trigger:
+  - "execute this tasks.yaml with parallel sub-agents"
+  - "launch the task graph and merge results into an integration branch"
+  - "run the planned tasks with dependency ordering and isolation"
+  - "orchestrate agent execution from this task graph"
+  - "I have a tasks.yaml ready, run it with safety guardrails"
+  - "execute the implementation run and generate a run report"
+  - "launch isolated sub-agents for each task in the graph"
+  - "run this task graph with file-scope boundaries enforced"
+  - "start the controlled implementation run from the plan"
+  - "merge task results into a branch after parallel agent execution"
+
+should_not_trigger:
+  - "decompose this PRD into domain specs"
+  - "plan implementation tasks from a spec folder"
+  - "create a tasks.yaml from this domain spec"
+  - "scan the repo for leaked credentials"
+  - "write a GitHub Actions workflow"
+  - "set up a CI/CD pipeline"
+  - "deploy to production with zero downtime"
+  - "review this code for security issues"
+  - "run the test suite and report coverage"
+  - "create a Kubernetes deployment manifest"
