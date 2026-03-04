@@ -18,6 +18,7 @@ Standard skill layout (recommended):
 - `assets/` for templates or data files
 - `examples/` for expected outputs
 - `tests/` with `run_tests.sh` as entry point
+- `evals/` with `eval_*.yaml` eval cases
 - `action.yml` for GitHub Actions integration
 
 ## Build, Test, and Development Commands
@@ -35,6 +36,8 @@ Lints production Bash scripts.
 Lints test scripts with relaxed severity.
 - `bash -n skills/<skill-name>/scripts/*.sh`  
 Fast syntax check when `shellcheck` is unavailable.
+
+Evals (`evals/eval_*.yaml`) are **not** run in CI. They require an LLM and are executed manually. See `EVAL_SPEC.md` for the format and running instructions.
 
 ## Coding Style & Naming Conventions
 Use portable Bash (`#!/usr/bin/env bash`) with `set -euo pipefail`. Scripts must accept target paths as arguments; do not hardcode local paths.

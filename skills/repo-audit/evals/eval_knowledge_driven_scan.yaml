@@ -1,0 +1,45 @@
+prompt: |
+  Without running any scripts, read the repo-audit scan
+  specification and perform a manual audit of the repository
+  at /tmp/eval-knowledge-repo. Use only your own tools (file
+  reading, grep, etc.) to check all five scan dimensions.
+  Produce a report in the same Markdown format as the scan
+  script output. Mark any checks you cannot perform as SKIPPED.
+description: >
+  Verify that an agent can perform a comprehensive audit using
+  only the skill documentation (Model B -- knowledge-driven),
+  without executing any scan scripts.
+tags:
+  - intermediate
+  - knowledge-only
+context_files:
+  - skills/repo-audit/SKILL.md
+  - skills/repo-audit/references/SCAN_SPEC.md
+  - skills/repo-audit/references/REPORT_FORMAT.md
+setup: |
+  rm -rf /tmp/eval-knowledge-repo
+  mkdir -p /tmp/eval-knowledge-repo
+  cd /tmp/eval-knowledge-repo && git init
+  echo "# TODO: write real readme" > README.md
+  echo "API_KEY=sk-test-1234567890" > .env
+  echo ".env" > .gitignore
+  mkdir -p src
+  cat > src/app.js << 'JSEOF'
+// TODO: add error handling
+const token = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef12";
+console.log(token);
+JSEOF
+  git add -A && git commit -m "Initial commit"
+expected:
+  - "Report covers all five scan dimensions"
+  - "Hardcoded GitHub token in src/app.js is identified"
+  - ".env file presence is noted even though it is gitignored"
+  - "TODO comments are flagged under Code Quality"
+  - "Checks requiring external tools (shellcheck, gitleaks, trivy) are marked SKIPPED"
+  - "Report follows the Markdown format from REPORT_FORMAT.md"
+difficulty: intermediate
+model_agnostic: true
+notes: >
+  Model B evals inherently have more variance than script-based
+  evals. Evaluators should focus on whether key findings are
+  identified rather than exact formatting matches.
