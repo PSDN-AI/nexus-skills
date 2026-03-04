@@ -47,9 +47,11 @@ git clone https://github.com/PSDN-AI/nexus-skills.git
 
 | Skill | Category | Description |
 |-------|----------|-------------|
-| [repo-audit](skills/repo-audit/) | Security & Compliance | Scan for secrets, quality issues, and compliance problems before going public |
 | [prd-decompose](skills/prd-decompose/) | Product Engineering | Decompose a PRD into domain-specific specs for AI Agent consumption |
+| [spec-plan](skills/spec-plan/) | Product Engineering | Convert a domain spec into an executable task graph with dependency ordering and parallelization |
+| [agent-launcher](skills/agent-launcher/) | Product Engineering | Execute a task graph with isolated sub-agents, dependency enforcement, and run reports |
 | [gha-create](skills/gha-create/) | CI/CD & DevOps | Generate GitHub Actions workflows with elite security and efficiency practices |
+| [repo-audit](skills/repo-audit/) | Security & Compliance | Scan for secrets, quality issues, and compliance problems before going public |
 
 ## Contributing
 
