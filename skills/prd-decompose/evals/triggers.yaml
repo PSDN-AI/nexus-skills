@@ -1,0 +1,30 @@
+# Trigger tests for prd-decompose
+#
+# Verifies that the skill's description triggers on relevant prompts
+# and does NOT trigger on irrelevant ones.
+
+should_trigger:
+  - "break down this PRD into domain-specific specs"
+  - "decompose this product requirements document for our agents"
+  - "split this technical design doc into frontend, backend, and infra specs"
+  - "I have a PRD that needs to be broken into work units for AI agents"
+  - "take this product spec and create domain folders with boundary conditions"
+  - "convert this requirements document into agent-consumable specs"
+  - "here's a PRD, separate it by domain — backend, security, devops"
+  - "parse this design document into self-contained specs per domain"
+  - "I need to decompose a product spec into separate agent tasks"
+  - "create domain-scoped work units from this requirements doc"
+
+should_not_trigger:
+  - "scan this repo for hardcoded secrets"
+  - "review this pull request for bugs"
+  - "write a unit test for the API endpoint"
+  - "create a GitHub Actions CI workflow"
+  - "convert this spec.md and boundary.yaml into a task plan"
+  - "I have domain specs ready, plan out the implementation tasks"
+  - "execute the task graph with parallel agents"
+  - "launch sub-agents to implement the planned tasks"
+  - "refactor this module into smaller functions"
+  - "deploy this service to production"
+  - "generate API documentation from the codebase"
+  - "estimate how long this feature will take"

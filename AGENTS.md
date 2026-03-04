@@ -17,6 +17,7 @@ Standard skill layout (recommended):
 - `references/` for detailed docs loaded on demand
 - `assets/` for templates or data files
 - `examples/` for expected outputs
+- `evals/` for trigger tests (`triggers.yaml`)
 - `tests/` with `run_tests.sh` as entry point
 - `action.yml` for GitHub Actions integration
 

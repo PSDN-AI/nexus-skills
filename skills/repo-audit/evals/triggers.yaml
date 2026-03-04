@@ -1,0 +1,30 @@
+# Trigger tests for repo-audit
+#
+# Verifies that the skill's description triggers on relevant prompts
+# and does NOT trigger on irrelevant ones.
+
+should_trigger:
+  - "scan this repo for secrets before open-sourcing"
+  - "audit the codebase for hardcoded API keys"
+  - "check if there are any credentials committed"
+  - "are there any leaked secrets in this repository?"
+  - "I want to make this repo public, is it safe?"
+  - "run a pre-release security checklist on this codebase"
+  - "find any PII or private keys in the code"
+  - "check code quality and documentation before publishing"
+  - "does this repo have any compliance issues?"
+  - "look for accidentally committed .env files or tokens"
+
+should_not_trigger:
+  - "write a unit test for the login function"
+  - "deploy to production"
+  - "create a new React component"
+  - "set up a CI/CD pipeline with GitHub Actions"
+  - "harden this GitHub Actions workflow for security"
+  - "add security permissions to the CI workflow"
+  - "refactor this function for readability"
+  - "write a security-focused unit test"
+  - "generate a Dockerfile for this project"
+  - "review this pull request for bugs"
+  - "create a README for this project"
+  - "rotate the AWS access keys in our secrets manager"

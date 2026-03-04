@@ -17,6 +17,7 @@ my-skill/
 ├── references/           # Optional — detailed documentation
 ├── assets/               # Optional — templates, images, data files
 ├── examples/             # Optional — example outputs
+├── evals/                # Optional (recommended) — trigger tests
 └── tests/                # Optional (recommended) — test suite
 ```
 
@@ -277,6 +278,68 @@ Tests are not required by the Agent Skills standard but are strongly recommended
 
 See `skills/repo-audit/tests/` for a reference implementation.
 
+### Description Trigger Testing
+
+The `description` field determines whether an agent activates your Skill. Trigger tests verify that your description matches the right prompts and rejects the wrong ones.
+
+Add an `evals/triggers.yaml` file to your Skill directory:
+
+```yaml
+# evals/triggers.yaml
+#
+# Prompts that SHOULD activate this Skill.
+should_trigger:
+  - "scan this repo for secrets before open-sourcing"
+  - "audit the codebase for hardcoded API keys"
+  - "check if there are any credentials committed"
+
+# Prompts that SHOULD NOT activate this Skill.
+should_not_trigger:
+  - "write a unit test for the login function"
+  - "deploy to production"
+  - "create a new React component"
+```
+
+**Format rules**:
+
+- Both `should_trigger` and `should_not_trigger` are required.
+- Minimum 5 entries each. More is better — aim for 8-10.
+- Each entry is a plain string representing a realistic user prompt.
+- Write prompts in natural language, as a user would actually type them.
+
+See `skills/repo-audit/evals/triggers.yaml` for a reference implementation.
+
+#### Writing Good Trigger Samples
+
+**should_trigger — prompts that must activate your Skill**:
+
+1. **Use realistic user phrasing.** Write prompts the way a user would actually ask, not how a developer would describe the feature.
+   - Good: "are there any API keys checked into this repo?"
+   - Bad: "execute secret scanning module"
+
+2. **Vary the wording.** Cover synonyms, different phrasings, and levels of specificity.
+   - "scan for secrets", "check for leaked credentials", "find hardcoded API keys"
+
+3. **Include indirect requests.** Users don't always name the exact task.
+   - "I want to open-source this repo, what should I check first?"
+
+4. **Cover your description's keywords.** If your description says "compliance", include a prompt that mentions compliance.
+
+**should_not_trigger — prompts that must NOT activate your Skill**:
+
+1. **Pick adjacent domains.** Choose prompts from related but distinct areas that a naive keyword match might confuse.
+   - For `repo-audit`: "write a security unit test" (security-adjacent but not an audit)
+
+2. **Include common agent tasks.** Generic prompts like "deploy to production" or "write a README" should not trigger specialized Skills.
+
+3. **Test confusing overlaps.** If your Skill mentions "code quality", add a prompt like "refactor this function for readability" — similar concept, wrong Skill.
+
+**Anti-patterns to avoid**:
+
+- Trivially obvious non-matches: "what's the weather?" tells you nothing useful.
+- Prompts that copy your description verbatim — real users don't talk that way.
+- Too few samples — 2-3 entries won't catch edge cases.
+
 ### Three Consumption Models
 
 Nexus Skills are designed to work at multiple layers. When writing your SKILL.md, consider all three:
@@ -372,6 +435,7 @@ Avoid abbreviations unless universally understood (`eks`, `ci-cd`, `aws`).
 - [ ] Skill added to `.claude-plugin/marketplace.json`
 - [ ] Tests exist (if scripts are included)
 - [ ] Tests pass locally
+- [ ] `evals/triggers.yaml` exists with 5+ should_trigger and 5+ should_not_trigger samples
 
 ---
 
