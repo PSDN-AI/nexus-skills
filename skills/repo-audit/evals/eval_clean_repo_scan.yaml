@@ -8,6 +8,7 @@ description: >
 tags:
   - basic
   - happy-path
+  - script-execution
 context_files:
   - skills/repo-audit/SKILL.md
 setup: |

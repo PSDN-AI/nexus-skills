@@ -21,22 +21,22 @@ setup: |
   echo "# Secret Scanner Test Suite" > README.md
   echo "MIT License" > LICENSE
   echo "node_modules/" > .gitignore
-  mkdir -p tests/fixtures
+  mkdir -p tests/fixtures docs
   cat > tests/fixtures/fake_secrets.py << 'PYEOF'
-  # Test fixtures -- these are intentionally fake
-  EXAMPLE_AWS_KEY = "AKIAIOSFODNN7EXAMPLE"
-  EXAMPLE_SECRET = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-  PYEOF
+# Test fixtures -- these are intentionally fake
+EXAMPLE_AWS_KEY = "AKIAIOSFODNN7EXAMPLE"
+EXAMPLE_SECRET = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+PYEOF
   cat > docs/setup.md << 'MDEOF'
-  ## Configuration
+## Configuration
 
-  Replace the placeholder values below with your actual credentials:
+Replace the placeholder values below with your actual credentials:
 
-  ```
-  API_KEY=your-api-key-here
-  DB_PASSWORD=change-me
-  ```
-  MDEOF
+```
+API_KEY=your-api-key-here
+DB_PASSWORD=change-me
+```
+MDEOF
   mkdir -p src
   echo "print('production code, no secrets')" > src/main.py
   git add -A && git commit -m "Initial commit"

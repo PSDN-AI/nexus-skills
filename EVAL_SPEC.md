@@ -108,7 +108,7 @@ notes: >
 | `tags` | list of strings | `[]` | Classification tags from the [tag taxonomy](#tag-taxonomy). |
 | `context_files` | list of strings | `[]` | Paths (relative to repo root) the agent should load before executing. |
 | `setup` | string | --- | Shell commands to run before the eval to prepare the environment (create temp repos, seed data, etc.). |
-| `expected_behavior` | map | --- | Structured, machine-parseable success criteria. Use when you want automated eval harnesses to score results without human judgment. Keys are free-form. |
+| `expected_behavior` | map | --- | Structured, machine-parseable success criteria for automated eval harnesses. Keys are free-form. Only add this when building a harness that scores programmatically --- it should express the same intent as `expected`. |
 | `difficulty` | string | --- | One of: `basic`, `intermediate`, `advanced`. |
 | `model_agnostic` | boolean | `true` | Whether the eval is designed to work across different LLMs. Set to `false` if it relies on model-specific capabilities. |
 | `notes` | string | --- | Additional context for eval runners --- known edge cases, expected variance, etc. |
@@ -118,8 +118,8 @@ notes: >
 - `prompt` must be non-empty.
 - `expected` must contain at least one criterion.
 - `tags` values should come from the [tag taxonomy](#tag-taxonomy) but custom tags are allowed.
-- `context_files` paths are relative to the skill's repository root.
-- `setup` commands run in a temporary directory. Do not assume persistent state.
+- `context_files` paths are relative to the repository root.
+- `setup` commands must be self-cleaning. Use `rm -rf` at the top to remove prior state from the same eval.
 - `difficulty` must be one of `basic`, `intermediate`, `advanced` if present.
 
 ---

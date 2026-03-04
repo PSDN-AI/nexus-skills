@@ -12,6 +12,7 @@ tags:
   - basic
   - security
   - web3
+  - script-execution
 context_files:
   - skills/repo-audit/SKILL.md
 setup: |
@@ -23,19 +24,19 @@ setup: |
   echo "node_modules/" > .gitignore
   mkdir -p src
   cat > src/deploy.js << 'JSEOF'
-  const DEPLOYER_PRIVATE_KEY = "0x4c0883a69102937d6231471b5dbb6204fe512961708279f21a4c8e3b2ab5f801";
-  const MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-  JSEOF
+const DEPLOYER_PRIVATE_KEY = "0x4c0883a69102937d6231471b5dbb6204fe512961708279f21a4c8e3b2ab5f801";
+const MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+JSEOF
   cat > hardhat.config.js << 'JSEOF'
-  module.exports = {
-    networks: {
-      mainnet: {
-        url: "https://mainnet.infura.io/v3/YOUR_PROJECT_ID",
-        accounts: ["0x4c0883a69102937d6231471b5dbb6204fe512961708279f21a4c8e3b2ab5f801"]
-      }
+module.exports = {
+  networks: {
+    mainnet: {
+      url: "https://mainnet.infura.io/v3/YOUR_PROJECT_ID",
+      accounts: ["0x4c0883a69102937d6231471b5dbb6204fe512961708279f21a4c8e3b2ab5f801"]
     }
-  };
-  JSEOF
+  }
+};
+JSEOF
   git add -A && git commit -m "Initial commit"
 expected:
   - "Overall verdict is NOT READY"

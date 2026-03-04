@@ -43,4 +43,4 @@ metadata:
 
 ## Evals
 
-See [EVAL_SPEC.md](EVAL_SPEC.md) for the eval format. Add eval files to `evals/eval_*.yaml`.
+See `EVAL_SPEC.md` in the repository root for the eval format. Add eval files to `evals/eval_*.yaml`.

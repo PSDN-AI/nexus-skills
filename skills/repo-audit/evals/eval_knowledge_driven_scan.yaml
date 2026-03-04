@@ -25,10 +25,10 @@ setup: |
   echo ".env" > .gitignore
   mkdir -p src
   cat > src/app.js << 'JSEOF'
-  // TODO: add error handling
-  const token = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef12";
-  console.log(token);
-  JSEOF
+// TODO: add error handling
+const token = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef12";
+console.log(token);
+JSEOF
   git add -A && git commit -m "Initial commit"
 expected:
   - "Report covers all five scan dimensions"
