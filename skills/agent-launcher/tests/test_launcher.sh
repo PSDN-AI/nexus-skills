@@ -535,6 +535,14 @@ test_missing_input() {
 # ============================================================
 # Bonus: --version and --help flags
 # ============================================================
+test_launch_script_permissions() {
+  if [[ -x "$LAUNCH_SH" ]]; then
+    _pass "launch.sh remains executable"
+  else
+    _fail "launch.sh remains executable" "expected executable bit on $LAUNCH_SH"
+  fi
+}
+
 test_version_flag() {
   local output
   output=$("$BASH" "$LAUNCH_SH" --version 2>&1)
@@ -557,6 +565,7 @@ test_help_flag() {
 echo ">> agent-launcher integration tests"
 echo ""
 
+test_launch_script_permissions
 test_version_flag
 test_help_flag
 test_happy_path
