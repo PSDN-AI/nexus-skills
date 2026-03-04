@@ -1,0 +1,47 @@
+prompt: |
+  Scan the repository at /tmp/eval-web3-repo using the
+  repo-audit skill. The repository is a Web3 project that
+  may contain blockchain-related secrets. Run the scan and
+  report all findings, paying special attention to Web3-specific
+  secret patterns.
+description: >
+  Verify that the scanner detects Web3-specific secret patterns
+  including Ethereum private keys, mnemonic seed phrases, and
+  Solana keypairs.
+tags:
+  - basic
+  - security
+  - web3
+context_files:
+  - skills/repo-audit/SKILL.md
+setup: |
+  rm -rf /tmp/eval-web3-repo
+  mkdir -p /tmp/eval-web3-repo
+  cd /tmp/eval-web3-repo && git init
+  echo "# DeFi Protocol" > README.md
+  echo "MIT License" > LICENSE
+  echo "node_modules/" > .gitignore
+  mkdir -p src
+  cat > src/deploy.js << 'JSEOF'
+  const DEPLOYER_PRIVATE_KEY = "0x4c0883a69102937d6231471b5dbb6204fe512961708279f21a4c8e3b2ab5f801";
+  const MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+  JSEOF
+  cat > hardhat.config.js << 'JSEOF'
+  module.exports = {
+    networks: {
+      mainnet: {
+        url: "https://mainnet.infura.io/v3/YOUR_PROJECT_ID",
+        accounts: ["0x4c0883a69102937d6231471b5dbb6204fe512961708279f21a4c8e3b2ab5f801"]
+      }
+    }
+  };
+  JSEOF
+  git add -A && git commit -m "Initial commit"
+expected:
+  - "Overall verdict is NOT READY"
+  - "Ethereum private key (0x-prefixed hex) in src/deploy.js is flagged as CRITICAL"
+  - "Mnemonic seed phrase in src/deploy.js is flagged as CRITICAL"
+  - "Private key in hardhat.config.js accounts array is flagged"
+  - "Remediation suggests using environment variables or a hardware wallet for deployment keys"
+difficulty: basic
+model_agnostic: true

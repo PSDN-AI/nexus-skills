@@ -1,0 +1,30 @@
+prompt: |
+  Scan the repository at /tmp/eval-clean-repo using the
+  repo-audit skill. Run the scan script and generate a full
+  Markdown readiness report covering all five dimensions.
+description: >
+  Verify that a clean, well-structured repository receives a
+  READY verdict with no CRITICAL or HIGH findings.
+tags:
+  - basic
+  - happy-path
+context_files:
+  - skills/repo-audit/SKILL.md
+setup: |
+  rm -rf /tmp/eval-clean-repo
+  mkdir -p /tmp/eval-clean-repo
+  cd /tmp/eval-clean-repo && git init
+  echo "# My Project" > README.md
+  echo "MIT License" > LICENSE
+  echo "node_modules/" > .gitignore
+  mkdir -p src
+  echo "console.log('hello');" > src/index.js
+  git add -A && git commit -m "Initial commit"
+expected:
+  - "Overall verdict is READY"
+  - "Report includes all five scan dimensions: Security, Code Quality, Documentation, Repo Hygiene, Legal & Compliance"
+  - "No CRITICAL findings are reported"
+  - "No HIGH findings are reported"
+  - "Report is formatted as Markdown with a summary table"
+difficulty: basic
+model_agnostic: true

@@ -1,0 +1,54 @@
+prompt: |
+  Scan the repository at /tmp/eval-false-positive-repo using
+  the repo-audit skill. The repository contains test fixtures
+  with intentional fake secrets. Review the findings and
+  distinguish real secrets from test fixtures. Note which
+  findings are likely false positives.
+description: >
+  Verify that the agent can identify and flag known
+  false-positive patterns -- such as example API keys in test
+  fixtures, placeholder credentials in documentation, and
+  dummy tokens in sample configs -- rather than treating them
+  as real security issues.
+tags:
+  - edge-case
+context_files:
+  - skills/repo-audit/SKILL.md
+setup: |
+  rm -rf /tmp/eval-false-positive-repo
+  mkdir -p /tmp/eval-false-positive-repo
+  cd /tmp/eval-false-positive-repo && git init
+  echo "# Secret Scanner Test Suite" > README.md
+  echo "MIT License" > LICENSE
+  echo "node_modules/" > .gitignore
+  mkdir -p tests/fixtures
+  cat > tests/fixtures/fake_secrets.py << 'PYEOF'
+  # Test fixtures -- these are intentionally fake
+  EXAMPLE_AWS_KEY = "AKIAIOSFODNN7EXAMPLE"
+  EXAMPLE_SECRET = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  PYEOF
+  cat > docs/setup.md << 'MDEOF'
+  ## Configuration
+
+  Replace the placeholder values below with your actual credentials:
+
+  ```
+  API_KEY=your-api-key-here
+  DB_PASSWORD=change-me
+  ```
+  MDEOF
+  mkdir -p src
+  echo "print('production code, no secrets')" > src/main.py
+  git add -A && git commit -m "Initial commit"
+expected:
+  - "Test fixture file tests/fixtures/fake_secrets.py is identified as containing secret-like patterns"
+  - "Agent notes that AKIAIOSFODNN7EXAMPLE is a known AWS example key, not a real credential"
+  - "Placeholder values in docs/setup.md are not flagged as real secrets"
+  - "Production code (src/main.py) is confirmed clean"
+  - "Overall assessment acknowledges false-positive patterns in test fixtures"
+difficulty: intermediate
+model_agnostic: true
+notes: >
+  False-positive handling depends on LLM judgment. The key
+  criterion is whether the agent distinguishes test fixtures
+  from real secrets, not whether it suppresses all warnings.
