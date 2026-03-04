@@ -14,10 +14,15 @@ should_trigger:
   - "run this task graph with file-scope boundaries enforced"
   - "start the controlled implementation run from the plan"
   - "merge task results into a branch after parallel agent execution"
+  - "the plan is ready, start building everything"
+  - "kick off the agents to implement these tasks"
+  - "run all the planned work and give me a report when done"
 
 should_not_trigger:
   - "decompose this PRD into domain specs"
+  - "break down this product spec into domain folders"
   - "plan implementation tasks from a spec folder"
+  - "convert this spec.md into an ordered task plan"
   - "create a tasks.yaml from this domain spec"
   - "scan the repo for leaked credentials"
   - "write a GitHub Actions workflow"

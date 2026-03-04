@@ -14,11 +14,17 @@ should_trigger:
   - "turn this domain specification into ordered tasks for AI agents"
   - "create a dependency-ordered task plan from the spec folder"
   - "produce tasks.yaml with acceptance criteria traceability"
+  - "I've got the spec folder ready, now plan out the work"
+  - "what tasks do we need to implement this spec?"
+  - "break this spec into concrete steps the agents can execute"
 
 should_not_trigger:
   - "decompose this PRD into domain-specific folders"
+  - "break down this product requirements document by domain"
+  - "split this technical design doc into frontend and backend specs"
   - "execute the task graph with sub-agents"
   - "launch parallel agents from tasks.yaml"
+  - "kick off the agents to implement these tasks"
   - "scan this repository for secrets"
   - "create a CI/CD workflow with GitHub Actions"
   - "write unit tests for this service"

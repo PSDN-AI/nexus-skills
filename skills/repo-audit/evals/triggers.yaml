@@ -20,6 +20,8 @@ should_not_trigger:
   - "deploy to production"
   - "create a new React component"
   - "set up a CI/CD pipeline with GitHub Actions"
+  - "harden this GitHub Actions workflow for security"
+  - "add security permissions to the CI workflow"
   - "refactor this function for readability"
   - "write a security-focused unit test"
   - "generate a Dockerfile for this project"

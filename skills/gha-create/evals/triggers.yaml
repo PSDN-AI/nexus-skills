@@ -20,6 +20,8 @@ should_not_trigger:
   - "configure CircleCI for this project"
   - "deploy to AWS using Terraform"
   - "scan this repo for hardcoded secrets"
+  - "audit the codebase for leaked API keys before open-sourcing"
+  - "check this repo for compliance issues"
   - "write a bash script to automate deployments"
   - "create a Dockerfile for this service"
   - "set up GitLab CI for our monorepo"
