@@ -1,0 +1,74 @@
+domain: backend
+generated_from: "sample-product-prd.md"
+generated_at: "2026-01-15T12:00:00Z"
+
+acceptance_criteria:
+  - id: AC-001
+    description: "All three database migrations apply successfully to an empty PostgreSQL database"
+    source_section: "Data Model"
+    priority: P0
+
+  - id: AC-002
+    description: "Migrations are idempotent: running schema.sql twice must not raise errors"
+    source_section: "Data Model"
+    priority: P0
+
+  - id: AC-003
+    description: "POST /api/v1/auth/register creates a new user and returns a valid JWT"
+    source_section: "Authentication"
+    priority: P0
+
+  - id: AC-004
+    description: "POST /api/v1/auth/login returns 401 when credentials are incorrect"
+    source_section: "Authentication"
+    priority: P0
+
+  - id: AC-005
+    description: "requireAuth middleware rejects requests with a missing or malformed token with 401"
+    source_section: "Authentication"
+    priority: P0
+
+  - id: AC-006
+    description: "GET /api/v1/products returns an array of all product objects"
+    source_section: "Product Catalog"
+    priority: P0
+
+  - id: AC-007
+    description: "POST /api/v1/products returns 422 with field-level errors when the body is invalid"
+    source_section: "Product Catalog"
+    priority: P1
+
+  - id: AC-008
+    description: "POST /api/v1/orders creates an order and returns the persisted order object"
+    source_section: "Order Processing"
+    priority: P0
+
+  - id: AC-009
+    description: "POST /api/v1/orders returns 422 when a productId in the items list does not exist"
+    source_section: "Order Processing"
+    priority: P0
+
+  - id: AC-010
+    description: "GET /api/v1/orders/:id returns 403 when the order belongs to a different user"
+    source_section: "Order Processing"
+    priority: P0
+
+constraints:
+  - type: security
+    description: "Passwords must be hashed with bcrypt at cost factor >= 12; plaintext passwords must never be logged or stored"
+
+  - type: performance
+    description: "All GET endpoints must respond within 200ms at p99 under 50 concurrent requests"
+
+  - type: scalability
+    description: "The service must be stateless; no in-process session state may be used"
+
+test_hints:
+  - scenario: "Register then immediately login with the same credentials"
+    expected: "Both calls return 200 and a JWT; the JWT subjects match the created user ID"
+
+  - scenario: "Create an order referencing a non-existent productId"
+    expected: "422 response with an error message identifying the invalid productId"
+
+  - scenario: "Fetch another user's order by ID"
+    expected: "403 Forbidden response; order data must not be included in the response body"

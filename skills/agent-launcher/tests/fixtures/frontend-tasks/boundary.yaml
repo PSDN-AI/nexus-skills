@@ -1,0 +1,48 @@
+domain: frontend
+generated_from: "sample-product-prd.md"
+generated_at: "2026-01-15T12:00:00Z"
+
+acceptance_criteria:
+  - id: AC-001
+    description: "Project scaffolding produces a working Vite + React + TypeScript build (npm run build exits 0)"
+    source_section: "Technical Requirements"
+    priority: P0
+
+  - id: AC-002
+    description: "React Router is configured with at minimum two routes: home (/) and products (/products)"
+    source_section: "Technical Requirements"
+    priority: P0
+
+  - id: AC-003
+    description: "Button, Card, and NavBar components are exported from src/components/index.ts"
+    source_section: "UI Components"
+    priority: P0
+
+  - id: AC-004
+    description: "NavBar highlights the active route using React Router integration"
+    source_section: "UI Components"
+    priority: P1
+
+  - id: AC-005
+    description: "Product listing page renders a responsive grid of product cards"
+    source_section: "Product Listing"
+    priority: P0
+
+  - id: AC-006
+    description: "Product page displays a loading skeleton during fetch and an error banner on failure"
+    source_section: "Product Listing"
+    priority: P1
+
+constraints:
+  - type: compatibility
+    description: "Must support the two most recent versions of Chrome, Firefox, and Safari"
+
+  - type: performance
+    description: "Lighthouse performance score must be >= 80 on a simulated mobile device"
+
+test_hints:
+  - scenario: "Render NavBar with an active route"
+    expected: "The matching nav link has the 'active' CSS class applied"
+
+  - scenario: "useProducts hook when the API returns an error"
+    expected: "The error field is populated and loading is false"

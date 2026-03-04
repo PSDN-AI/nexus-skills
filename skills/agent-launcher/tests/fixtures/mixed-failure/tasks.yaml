@@ -1,0 +1,115 @@
+version: "0.1.0"
+domain: "mixed"
+generated_at: "2026-01-15T12:00:00Z"
+generated_from:
+  spec: "skills/agent-launcher/tests/fixtures/mixed-failure/spec.md"
+  boundary: "skills/agent-launcher/tests/fixtures/mixed-failure/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: MX-001
+    name: "Environment setup and configuration loader"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "src/config.ts"
+      - "src/index.ts"
+      - ".env.example"
+    acceptance_criteria:
+      - AC-001
+      - AC-002
+    prompt_context: |
+      Create a typed configuration loader in `src/config.ts` that reads required
+      environment variables and throws a descriptive error on startup if any are
+      missing. Required variables: SERVICE_NAME (string), FEATURE_FLAG_API_URL
+      (string, must be a valid URL), LOG_LEVEL (one of: debug|info|warn|error).
+      Export a frozen `config` object. Update `src/index.ts` to import `config`
+      before any other application logic runs so that misconfiguration fails fast.
+      Create `.env.example` listing all variables with placeholder values and a
+      one-line comment for each.
+
+  - id: MX-002
+    name: "Feature-A integration with external flag service"
+    depends_on:
+      - MX-001
+    estimated_complexity: high
+    files_touched:
+      - "src/features/feature-a/client.ts"
+      - "src/features/feature-a/handler.ts"
+      - "src/features/feature-a/types.ts"
+    acceptance_criteria:
+      - AC-003
+      - AC-004
+    # FIXTURE NOTE: This task is intentionally designed to represent a failing
+    # task in test scenarios. Tests that exercise failure propagation should mock
+    # this task as having status "failed" after execution. The unreliable
+    # external dependency (FEATURE_FLAG_API_URL) is the simulated failure point.
+    prompt_context: |
+      Implement the Feature-A integration that polls the external feature-flag
+      service configured via `config.FEATURE_FLAG_API_URL`. The client must:
+      - Define a `FeatureFlag` type: { key: string, enabled: boolean, rollout: number }.
+      - Implement `fetchFlag(key: string): Promise<FeatureFlag>` that makes a
+        GET request to `{FEATURE_FLAG_API_URL}/flags/{key}` with a 2-second timeout.
+      - Implement `isEnabled(key: string, userId: string): Promise<boolean>` that
+        fetches the flag and returns true only if `enabled` is true AND a
+        deterministic hash of userId falls within the `rollout` percentage.
+      - Implement a handler that wraps `isEnabled` and logs the result at the
+        configured LOG_LEVEL before returning.
+      NOTE FOR TESTS: The external service at FEATURE_FLAG_API_URL is intentionally
+      unavailable in test fixtures. Simulate this task failing by having the agent
+      report a non-zero exit code after exhausting retries.
+
+  - id: MX-003
+    name: "Integration layer and health endpoint"
+    depends_on:
+      - MX-002
+    estimated_complexity: medium
+    files_touched:
+      - "src/integration/index.ts"
+      - "src/routes/health.ts"
+    acceptance_criteria:
+      - AC-005
+      - AC-006
+    # FIXTURE NOTE: This task depends on MX-002. When MX-002 fails, agent-launcher
+    # must mark MX-003 as "blocked" without attempting execution. Tests that
+    # verify blocking behavior should assert that this task never starts.
+    prompt_context: |
+      Wire up the Feature-A integration from MX-002 into the main application and
+      expose a health endpoint. Requirements:
+      - `src/integration/index.ts` must import and re-export the Feature-A handler.
+        It should also expose an `initialize()` function that performs a preflight
+        check by calling `fetchFlag('system.health')` and logging the result.
+      - `src/routes/health.ts` must implement GET /health returning
+        { status: 'ok', service: config.SERVICE_NAME, timestamp: ISO8601 }.
+        The endpoint must not require authentication.
+      This task must not begin until MX-002 is confirmed merged and green, because
+      the integration layer imports directly from the Feature-A client module.
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - MX-001
+    parallel: false
+    reason: "Configuration loader must be in place before any feature code runs; all subsequent tasks import from src/config.ts."
+
+  - phase: 2
+    tasks:
+      - MX-002
+    parallel: false
+    reason: "Feature-A integration (MX-002) is the only phase-2 task. It depends on MX-001 and has no parallel sibling."
+
+  - phase: 3
+    tasks:
+      - MX-003
+    parallel: false
+    reason: "Integration layer depends on MX-002. If MX-002 fails, this phase must not execute and MX-003 must be marked blocked."
+
+validation:
+  total_tasks: 3
+  total_phases: 3
+  parallelizable_tasks: 0
+  acceptance_criteria_mapped: 6
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"

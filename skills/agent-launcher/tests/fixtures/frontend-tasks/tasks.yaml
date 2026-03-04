@@ -1,0 +1,96 @@
+version: "0.1.0"
+domain: "frontend"
+generated_at: "2026-01-15T12:00:00Z"
+generated_from:
+  spec: "skills/agent-launcher/tests/fixtures/frontend-tasks/spec.md"
+  boundary: "skills/agent-launcher/tests/fixtures/frontend-tasks/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: FE-001
+    name: "Project scaffolding and routing setup"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "src/main.tsx"
+      - "src/App.tsx"
+      - "src/routes/index.tsx"
+      - "vite.config.ts"
+      - "package.json"
+    acceptance_criteria:
+      - AC-001
+      - AC-002
+    prompt_context: |
+      Bootstrap a React + TypeScript project using Vite. Configure React Router
+      with placeholder routes for the home page and product page. The router
+      must render a top-level layout component that wraps all routes. Ensure
+      `npm run build` exits with code 0 and produces a `dist/` directory.
+
+  - id: FE-002
+    name: "Shared component library (Button, Card, NavBar)"
+    depends_on:
+      - FE-001
+    estimated_complexity: medium
+    files_touched:
+      - "src/components/Button.tsx"
+      - "src/components/Card.tsx"
+      - "src/components/NavBar.tsx"
+      - "src/components/index.ts"
+    acceptance_criteria:
+      - AC-003
+      - AC-004
+    prompt_context: |
+      Implement three shared UI components in `src/components/`:
+      - Button: accepts `variant` (primary|secondary|ghost), `size` (sm|md|lg),
+        `disabled`, and `onClick` props.
+      - Card: accepts `title`, `children`, and optional `footer` slot.
+      - NavBar: renders logo on the left and a nav link list on the right;
+        highlights the active route using React Router's `useMatch`.
+      All components must be exported from `src/components/index.ts`. Each
+      component must include a JSDoc comment describing its props.
+
+  - id: FE-003
+    name: "Product listing page"
+    depends_on:
+      - FE-001
+    estimated_complexity: medium
+    files_touched:
+      - "src/pages/ProductsPage.tsx"
+      - "src/hooks/useProducts.ts"
+      - "src/types/product.ts"
+    acceptance_criteria:
+      - AC-005
+      - AC-006
+    prompt_context: |
+      Build a product listing page at the `/products` route. The page must:
+      - Define a `Product` TypeScript interface in `src/types/product.ts` with
+        fields: id (string), name (string), price (number), imageUrl (string).
+      - Implement `useProducts` hook that fetches from `GET /api/v1/products`
+        and returns `{ data, loading, error }`.
+      - Render a responsive grid of product cards using the Card component.
+      - Show a loading skeleton while fetching and an error banner on failure.
+      This task may be worked in parallel with FE-002.
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - FE-001
+    parallel: false
+    reason: "Scaffolding must complete before any other task can begin; creates the project structure all other tasks depend on."
+
+  - phase: 2
+    tasks:
+      - FE-002
+      - FE-003
+    parallel: true
+    reason: "Shared components (FE-002) and the product page (FE-003) both depend only on FE-001 and have no files in common; safe to run in parallel."
+
+validation:
+  total_tasks: 3
+  total_phases: 2
+  parallelizable_tasks: 2
+  acceptance_criteria_mapped: 6
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"

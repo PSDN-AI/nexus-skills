@@ -1,0 +1,7 @@
+domain: mixed
+target_repo: ""
+target_branch: "main"
+pr_template: "default"
+agent_model: ""
+max_iterations: 3
+review_required: true

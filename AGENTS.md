@@ -9,6 +9,7 @@ Current skills:
 - `skills/repo-audit/` (repository readiness scanner)
 - `skills/prd-decompose/` (PRD decomposition workflow)
 - `skills/gha-create/` (GitHub Actions workflow generator and validator)
+- `skills/agent-launcher/` (task graph to parallel agent execution)
 - `skills/spec-plan/` (domain spec to executable task graph)
 
 Standard skill layout (recommended):
@@ -109,7 +110,7 @@ All issues and pull requests should be labeled. Apply labels when opening the it
 Allowed labels:
 - Type labels (required on every issue and PR): `bug`, `enhancement`, `documentation`, `question`, `security`
 - Scope labels (use one when applicable): `new-skill`, `area:repo`, `area:ci`, `area:docs`
-- Skill labels (use one when a single skill is the primary subject): `skill:repo-audit`, `skill:prd-decompose`, `skill:gha-create`, `skill:spec-plan`
+- Skill labels (use one when a single skill is the primary subject): `skill:repo-audit`, `skill:prd-decompose`, `skill:gha-create`, `skill:spec-plan`, `skill:agent-launcher`
 - Status labels (optional): `status:needs-review`, `status:blocked`
 
 Rules:

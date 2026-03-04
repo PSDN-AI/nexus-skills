@@ -1,0 +1,51 @@
+domain: mixed
+generated_from: "sample-feature-prd.md"
+generated_at: "2026-01-15T12:00:00Z"
+
+acceptance_criteria:
+  - id: AC-001
+    description: "Application startup fails with a descriptive error message when any required environment variable is missing"
+    source_section: "Configuration"
+    priority: P0
+
+  - id: AC-002
+    description: ".env.example lists all required variables with placeholder values"
+    source_section: "Configuration"
+    priority: P1
+
+  - id: AC-003
+    description: "fetchFlag returns a FeatureFlag object for a valid flag key within 2 seconds"
+    source_section: "Feature-A Integration"
+    priority: P0
+
+  - id: AC-004
+    description: "isEnabled returns false for any userId when the external service is unreachable"
+    source_section: "Feature-A Integration"
+    priority: P0
+
+  - id: AC-005
+    description: "GET /health returns 200 with { status: 'ok', service, timestamp } when the service is running"
+    source_section: "Health Check"
+    priority: P0
+
+  - id: AC-006
+    description: "initialize() completes without throwing when the feature-flag service is available"
+    source_section: "Health Check"
+    priority: P1
+
+constraints:
+  - type: compatibility
+    description: "Must run on Node.js 20 LTS; no dependency on Node.js built-in APIs beyond the LTS feature set"
+
+  - type: security
+    description: "FEATURE_FLAG_API_URL must be validated as a well-formed HTTPS URL at startup; HTTP URLs must be rejected"
+
+test_hints:
+  - scenario: "Start the service with FEATURE_FLAG_API_URL unset"
+    expected: "Process exits with code 1 and prints 'Missing required environment variable: FEATURE_FLAG_API_URL'"
+
+  - scenario: "fetchFlag is called but the external service returns 503"
+    expected: "isEnabled returns false; no unhandled promise rejection is emitted"
+
+  - scenario: "MX-002 exits with a non-zero code during agent-launcher execution"
+    expected: "MX-003 is marked 'blocked' and agent-launcher reports overall status 'partial_failure'"

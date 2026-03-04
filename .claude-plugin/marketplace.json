@@ -51,6 +51,17 @@
       "category": "product-engineering",
       "homepage": "https://github.com/PSDN-AI/nexus-skills",
       "repository": "https://github.com/PSDN-AI/nexus-skills"
+    },
+    {
+      "name": "agent-launcher",
+      "source": "./skills/agent-launcher",
+      "description": "Executes a task graph with isolated sub-agents, dependency ordering, file-scope guardrails, and structured run reports",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": ["orchestration", "multi-agent", "execution", "task-graph", "git-workflow", "ai-agents"],
+      "category": "product-engineering",
+      "homepage": "https://github.com/PSDN-AI/nexus-skills",
+      "repository": "https://github.com/PSDN-AI/nexus-skills"
     }
   ]
 }

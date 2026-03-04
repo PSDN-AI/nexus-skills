@@ -1,0 +1,143 @@
+version: "0.1.0"
+domain: "backend"
+generated_at: "2026-01-15T12:00:00Z"
+generated_from:
+  spec: "skills/agent-launcher/tests/fixtures/backend-tasks/spec.md"
+  boundary: "skills/agent-launcher/tests/fixtures/backend-tasks/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: BE-001
+    name: "Database schema and migrations"
+    depends_on: []
+    estimated_complexity: low
+    files_touched:
+      - "db/migrations/001_create_users.sql"
+      - "db/migrations/002_create_products.sql"
+      - "db/migrations/003_create_orders.sql"
+      - "db/schema.sql"
+    acceptance_criteria:
+      - AC-001
+      - AC-002
+    prompt_context: |
+      Create PostgreSQL migrations for the three core tables: users, products,
+      and orders. Each migration file must be idempotent (using IF NOT EXISTS).
+      Schema requirements:
+      - users: id (UUID PK), email (VARCHAR 255 UNIQUE NOT NULL), password_hash
+        (VARCHAR 255 NOT NULL), created_at (TIMESTAMPTZ DEFAULT NOW()).
+      - products: id (UUID PK), name (VARCHAR 255 NOT NULL), price_cents (INT NOT NULL),
+        image_url (TEXT), created_at (TIMESTAMPTZ DEFAULT NOW()).
+      - orders: id (UUID PK), user_id (UUID FK -> users.id), status
+        (VARCHAR 50 NOT NULL DEFAULT 'pending'), created_at (TIMESTAMPTZ DEFAULT NOW()).
+      Produce a consolidated `db/schema.sql` that applies all migrations in order.
+      All migrations must pass `psql --dry-run` (i.e., `psql -f schema.sql` on an
+      empty database must exit 0).
+
+  - id: BE-002
+    name: "Authentication service (register, login, JWT)"
+    depends_on:
+      - BE-001
+    estimated_complexity: high
+    files_touched:
+      - "src/auth/auth.service.ts"
+      - "src/auth/auth.controller.ts"
+      - "src/auth/auth.router.ts"
+      - "src/auth/jwt.ts"
+      - "src/middleware/require_auth.ts"
+    acceptance_criteria:
+      - AC-003
+      - AC-004
+      - AC-005
+    prompt_context: |
+      Implement a stateless JWT authentication service on top of the users table
+      created in BE-001. Required endpoints:
+      - POST /api/v1/auth/register: accepts { email, password }, hashes the
+        password with bcrypt (cost 12), inserts the user, returns a signed JWT.
+      - POST /api/v1/auth/login: accepts { email, password }, verifies credentials,
+        returns a signed JWT on success or 401 on failure.
+      JWT payload must include { sub: userId, email, iat, exp }. Token expiry is
+      24 hours. Implement `requireAuth` Express middleware that validates the
+      Authorization: Bearer <token> header and attaches `req.user` to the request.
+      This task may be worked in parallel with BE-003.
+
+  - id: BE-003
+    name: "Product catalog API (CRUD)"
+    depends_on:
+      - BE-001
+    estimated_complexity: medium
+    files_touched:
+      - "src/products/product.service.ts"
+      - "src/products/product.controller.ts"
+      - "src/products/product.router.ts"
+      - "src/products/product.types.ts"
+    acceptance_criteria:
+      - AC-006
+      - AC-007
+    prompt_context: |
+      Implement the product catalog REST API on top of the products table created
+      in BE-001. Required endpoints:
+      - GET  /api/v1/products        — list all products (array of Product objects)
+      - GET  /api/v1/products/:id    — fetch a single product by UUID; 404 if not found
+      - POST /api/v1/products        — create a product (requires requireAuth middleware)
+      - PUT  /api/v1/products/:id    — update a product (requires requireAuth middleware)
+      - DELETE /api/v1/products/:id  — delete a product (requires requireAuth middleware)
+      Define the Product TypeScript type in `product.types.ts`. Write-operations
+      must validate the request body with zod and return 422 with field-level errors
+      on validation failure. This task may be worked in parallel with BE-002.
+
+  - id: BE-004
+    name: "Order processing service"
+    depends_on:
+      - BE-002
+      - BE-003
+    estimated_complexity: high
+    files_touched:
+      - "src/orders/order.service.ts"
+      - "src/orders/order.controller.ts"
+      - "src/orders/order.router.ts"
+      - "src/orders/order.types.ts"
+    acceptance_criteria:
+      - AC-008
+      - AC-009
+      - AC-010
+    prompt_context: |
+      Implement order processing using the users table (BE-001, via BE-002 auth)
+      and the products table (BE-001, via BE-003 catalog). Required endpoints:
+      - POST /api/v1/orders — create an order for the authenticated user. Accepts
+        { items: [{ productId, quantity }] }. Validates that every productId exists,
+        calculates total_cents, inserts the order record, and returns the created order.
+        Runs product validation and order insertion in a single database transaction.
+      - GET  /api/v1/orders — list orders for the authenticated user (newest first).
+      - GET  /api/v1/orders/:id — fetch a single order; returns 403 if the order
+        belongs to a different user.
+      All endpoints require the requireAuth middleware from BE-002.
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - BE-001
+    parallel: false
+    reason: "Database schema must exist before any service can be implemented; all other tasks read from or write to these tables."
+
+  - phase: 2
+    tasks:
+      - BE-002
+      - BE-003
+    parallel: true
+    reason: "Auth service and product catalog both depend only on BE-001. They operate on different tables and different source files; no conflicts."
+
+  - phase: 3
+    tasks:
+      - BE-004
+    parallel: false
+    reason: "Order processing depends on both BE-002 (requireAuth middleware) and BE-003 (product existence checks); must run after both complete."
+
+validation:
+  total_tasks: 4
+  total_phases: 3
+  parallelizable_tasks: 2
+  acceptance_criteria_mapped: 10
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"

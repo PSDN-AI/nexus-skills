@@ -1,0 +1,97 @@
+name: "Agent Launcher"
+description: "Execute a tasks.yaml task graph with isolated sub-agents and safety guardrails"
+author: "PSDN-AI"
+
+inputs:
+  domain-path:
+    description: "Path to domain folder containing tasks.yaml and config.yaml"
+    required: true
+  repo-path:
+    description: "Path to the target repository checkout"
+    required: true
+  max-parallel:
+    description: "Maximum concurrent tasks (default: 3)"
+    required: false
+    default: "3"
+  dry-run:
+    description: "Preview execution plan without running (default: false)"
+    required: false
+    default: "false"
+  resume:
+    description: "Execution ID to resume from a prior run"
+    required: false
+
+outputs:
+  succeeded-tasks:
+    description: "Number of tasks that succeeded"
+    value: ${{ steps.launch.outputs.succeeded }}
+  failed-tasks:
+    description: "Number of tasks that failed"
+    value: ${{ steps.launch.outputs.failed }}
+  blocked-tasks:
+    description: "Number of tasks blocked by failures"
+    value: ${{ steps.launch.outputs.blocked }}
+  integration-branch:
+    description: "Name of the integration branch with merged results"
+    value: ${{ steps.launch.outputs.integration_branch }}
+  run-report:
+    description: "Path to the generated run-report.yaml"
+    value: ${{ steps.launch.outputs.run_report }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Execute task graph
+      id: launch
+      shell: bash
+      run: |
+        ARGS=("${{ inputs.domain-path }}" --repo "${{ inputs.repo-path }}")
+        ARGS+=(--max-parallel "${{ inputs.max-parallel }}")
+
+        if [[ "${{ inputs.dry-run }}" == "true" ]]; then
+          ARGS+=(--dry-run)
+        fi
+
+        if [[ -n "${{ inputs.resume }}" ]]; then
+          ARGS+=(--resume "${{ inputs.resume }}")
+        fi
+
+        EXIT_CODE=0
+        OUTPUT=$("${{ github.action_path }}/scripts/launch.sh" "${ARGS[@]}" 2>&1) || EXIT_CODE=$?
+
+        echo "$OUTPUT"
+
+        # Extract metrics from run-report.yaml
+        REPORT="${{ inputs.domain-path }}/run-report.yaml"
+        if [[ -f "$REPORT" ]]; then
+          echo "run_report=$REPORT" >> "$GITHUB_OUTPUT"
+
+          SUCCEEDED=$(grep '  succeeded:' "$REPORT" | awk '{print $2}')
+          echo "succeeded=$SUCCEEDED" >> "$GITHUB_OUTPUT"
+
+          FAILED=$(grep '  failed:' "$REPORT" | head -1 | awk '{print $2}')
+          echo "failed=$FAILED" >> "$GITHUB_OUTPUT"
+
+          BLOCKED=$(grep '  blocked:' "$REPORT" | head -1 | awk '{print $2}')
+          echo "blocked=$BLOCKED" >> "$GITHUB_OUTPUT"
+
+          BRANCH=$(grep 'integration_branch:' "$REPORT" | head -1 | sed 's/.*: *//' | tr -d '"')
+          echo "integration_branch=$BRANCH" >> "$GITHUB_OUTPUT"
+        fi
+
+        if [[ "$EXIT_CODE" -ne 0 ]] && [[ "$EXIT_CODE" -ne 4 ]] && [[ "$EXIT_CODE" -ne 5 ]]; then
+          echo "::error::launch.sh exited with code ${EXIT_CODE}"
+        fi
+
+        exit "$EXIT_CODE"
+
+    - name: Display summary
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        echo "## Agent Launcher Results" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Succeeded**: ${{ steps.launch.outputs.succeeded }}" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Failed**: ${{ steps.launch.outputs.failed }}" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Blocked**: ${{ steps.launch.outputs.blocked }}" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Integration branch**: ${{ steps.launch.outputs.integration_branch }}" >> "$GITHUB_STEP_SUMMARY"

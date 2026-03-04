@@ -1,0 +1,63 @@
+# Example run-report.yaml -- Frontend E-Commerce Domain
+#
+# This is a complete worked example showing a multi-task run
+# where 5 of 6 tasks succeeded, 1 failed, and none are blocked
+# (the failed task had no dependents in this example).
+
+version: "0.1.0"
+domain: "frontend"
+execution_id: "run-20260303-001"
+source_tasks: "frontend/tasks.yaml"
+target_repo: "github.com/org/ecommerce"
+base_branch: "main"
+integration_branch: "agent-launcher/frontend/run-20260303-001"
+started_at: "2026-03-03T10:00:00Z"
+finished_at: "2026-03-03T10:45:00Z"
+
+tasks:
+  - id: FE-001
+    status: succeeded
+    branch: "agent/fe-001"
+    commit_sha: "a1b2c3d4e5f6789012345678901234567890abcd"
+    retries: 0
+
+  - id: FE-002
+    status: succeeded
+    branch: "agent/fe-002"
+    commit_sha: "b2c3d4e5f6789012345678901234567890abcde1"
+    retries: 0
+
+  - id: FE-003
+    status: succeeded
+    branch: "agent/fe-003"
+    commit_sha: "c3d4e5f6789012345678901234567890abcde1f2"
+    retries: 0
+
+  - id: FE-004
+    status: succeeded
+    branch: "agent/fe-004"
+    commit_sha: "d4e5f6789012345678901234567890abcde1f2a3"
+    retries: 0
+
+  - id: FE-005
+    status: failed
+    branch: "agent/fe-005"
+    commit_sha: ""
+    retries: 3
+    reason: "Execution failed after 3 retries"
+
+  - id: FE-006
+    status: blocked
+    branch: "agent/fe-006"
+    commit_sha: ""
+    retries: 0
+    reason: "Dependency FE-005 failed"
+
+summary:
+  total_tasks: 6
+  succeeded: 4
+  failed: 1
+  blocked: 1
+  skipped: 0
+  merged_to_integration_branch: 4
+  pull_request_ready: false
