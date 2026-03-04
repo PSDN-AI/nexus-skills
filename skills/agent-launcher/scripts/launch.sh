@@ -131,7 +131,7 @@ log() {
   fi
 }
 
-# shellcheck disable=SC2329
+# shellcheck disable=SC2317,SC2329
 cleanup_temp_state() {
   local path=""
 
