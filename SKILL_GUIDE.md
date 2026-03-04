@@ -17,7 +17,8 @@ my-skill/
 ├── references/           # Optional — detailed documentation
 ├── assets/               # Optional — templates, images, data files
 ├── examples/             # Optional — example outputs
-└── tests/                # Optional (recommended) — test suite
+├── tests/                # Optional (recommended) — test suite
+└── evals/                # Optional — agent effectiveness evals
 ```
 
 Minimal valid `SKILL.md`:
@@ -277,6 +278,31 @@ Tests are not required by the Agent Skills standard but are strongly recommended
 
 See `skills/repo-audit/tests/` for a reference implementation.
 
+### Evals
+
+Tests validate that scripts work correctly. Evals validate that a Skill **as a whole** produces good outcomes when an agent uses it.
+
+| Property | `tests/` | `evals/` |
+|----------|----------|----------|
+| Validates | Script correctness | Skill effectiveness |
+| Deterministic? | Yes | No |
+| Runs in CI? | Yes | No |
+| Requires LLM? | No | Yes |
+| File pattern | `test_*.sh` | `eval_*.yaml` |
+
+Minimal eval file (`evals/eval_basic_scan.yaml`):
+
+```yaml
+prompt: |
+  Scan the repository at /tmp/test-repo and generate
+  a readiness report.
+expected:
+  - "Report contains an overall READY or NOT READY verdict"
+  - "All five scan dimensions appear in the summary"
+```
+
+See [EVAL_SPEC.md](EVAL_SPEC.md) for the full schema, optional fields, tag taxonomy, and examples.
+
 ### Three Consumption Models
 
 Nexus Skills are designed to work at multiple layers. When writing your SKILL.md, consider all three:
@@ -372,6 +398,7 @@ Avoid abbreviations unless universally understood (`eks`, `ci-cd`, `aws`).
 - [ ] Skill added to `.claude-plugin/marketplace.json`
 - [ ] Tests exist (if scripts are included)
 - [ ] Tests pass locally
+- [ ] Evals exist for non-trivial skills (recommended)
 
 ---
 

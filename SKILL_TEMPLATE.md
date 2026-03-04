@@ -40,3 +40,7 @@ metadata:
 ## Common Pitfalls
 
 - **Pitfall**: Description and how to avoid it.
+
+## Evals
+
+See [EVAL_SPEC.md](EVAL_SPEC.md) for the eval format. Add eval files to `evals/eval_*.yaml`.

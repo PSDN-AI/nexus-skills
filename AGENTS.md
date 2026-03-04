@@ -18,6 +18,7 @@ Standard skill layout (recommended):
 - `assets/` for templates or data files
 - `examples/` for expected outputs
 - `tests/` with `run_tests.sh` as entry point
+- `evals/` with `eval_*.yaml` eval cases
 - `action.yml` for GitHub Actions integration
 
 ## Build, Test, and Development Commands
