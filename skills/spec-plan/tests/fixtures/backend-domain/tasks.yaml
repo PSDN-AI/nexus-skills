@@ -1,0 +1,111 @@
+version: "0.1.0"
+domain: "backend"
+generated_at: "2026-01-15T12:00:00Z"
+generated_from:
+  spec: "backend/spec.md"
+  boundary: "backend/boundary.yaml"
+  contracts: []
+
+tasks:
+  - id: BE-001
+    name: "Database schema and migrations"
+    depends_on: []
+    estimated_complexity: medium
+    files_touched:
+      - "prisma/schema.prisma"
+      - "prisma/migrations/"
+      - "src/db/seed.ts"
+    acceptance_criteria:
+      - AC-101
+    prompt_context: |
+      Create a PostgreSQL database schema using Prisma ORM with tables for
+      users, products, categories, orders, order_items, and cart_items.
+      All tables must have created_at and updated_at timestamps. Products
+      support multiple images and variant options (size, color). Generate
+      initial migration and seed file.
+
+  - id: BE-002
+    name: "Authentication service with JWT"
+    depends_on:
+      - BE-001
+    estimated_complexity: medium
+    files_touched:
+      - "src/middleware/auth.ts"
+      - "src/routes/auth.ts"
+      - "src/services/authService.ts"
+      - "src/utils/jwt.ts"
+    acceptance_criteria:
+      - AC-102
+      - AC-105
+    prompt_context: |
+      Implement user registration (email/password) and login returning a
+      JWT token with 24-hour expiry. Store passwords as bcrypt hashes.
+      Add password reset via email flow. Create auth middleware that
+      validates JWT tokens on protected routes.
+
+  - id: BE-003
+    name: "Product and category API endpoints"
+    depends_on:
+      - BE-001
+    estimated_complexity: medium
+    files_touched:
+      - "src/routes/products.ts"
+      - "src/routes/categories.ts"
+      - "src/services/productService.ts"
+    acceptance_criteria:
+      - AC-103
+      - AC-106
+    prompt_context: |
+      Build RESTful API endpoints: GET /api/v1/products (list with pagination,
+      filtering by category, sorting by price/popularity), GET /api/v1/products/:id
+      (detail with images and variants), GET /api/v1/categories (list all).
+      Use consistent JSON response format with proper error handling.
+
+  - id: BE-004
+    name: "Order processing with Stripe payment"
+    depends_on:
+      - BE-002
+      - BE-003
+    estimated_complexity: high
+    files_touched:
+      - "src/routes/orders.ts"
+      - "src/services/orderService.ts"
+      - "src/services/paymentService.ts"
+      - "src/services/emailService.ts"
+    acceptance_criteria:
+      - AC-104
+    prompt_context: |
+      Implement POST /api/v1/orders to create orders from cart. Validate
+      stock availability, calculate totals, process payment via Stripe API,
+      and send confirmation email. Orders have statuses: pending, paid,
+      shipped, delivered, cancelled. Requires authentication.
+
+execution_plan:
+  - phase: 1
+    tasks:
+      - BE-001
+    parallel: false
+    reason: "Database schema must exist before any service code"
+
+  - phase: 2
+    tasks:
+      - BE-002
+      - BE-003
+    parallel: true
+    reason: "No overlapping files_touched -- safe to parallelize"
+
+  - phase: 3
+    tasks:
+      - BE-004
+    parallel: false
+    reason: "Order processing depends on both auth and product services"
+
+validation:
+  total_tasks: 4
+  total_phases: 3
+  parallelizable_tasks: 2
+  acceptance_criteria_mapped: 6
+  acceptance_criteria_unmapped: 0
+  unmapped_criteria: []
+  files_conflict_check: pass
+  spec_coverage: "100%"
