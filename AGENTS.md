@@ -37,6 +37,8 @@ Lints test scripts with relaxed severity.
 - `bash -n skills/<skill-name>/scripts/*.sh`  
 Fast syntax check when `shellcheck` is unavailable.
 
+Evals (`evals/eval_*.yaml`) are **not** run in CI. They require an LLM and are executed manually. See `EVAL_SPEC.md` for the format and running instructions.
+
 ## Coding Style & Naming Conventions
 Use portable Bash (`#!/usr/bin/env bash`) with `set -euo pipefail`. Scripts must accept target paths as arguments; do not hardcode local paths.
 Require Bash 4.0+ when associative arrays are used.  

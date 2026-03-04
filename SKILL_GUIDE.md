@@ -398,7 +398,7 @@ Avoid abbreviations unless universally understood (`eks`, `ci-cd`, `aws`).
 - [ ] Skill added to `.claude-plugin/marketplace.json`
 - [ ] Tests exist (if scripts are included)
 - [ ] Tests pass locally
-- [ ] Evals exist for non-trivial skills (recommended)
+- [ ] Evals exist for non-trivial skills (optional, recommended)
 
 ---
 
