@@ -2,43 +2,41 @@
 # merger.sh — Merge validated task output into integration branch
 # Sourced by launch.sh; not intended for standalone execution.
 
-# merge_task_to_integration <repo_dir> <integration_branch> <task_branch> <task_id>
-# Merges a task branch into the integration branch.
-# Returns 0 on success, 5 on merge failure.
+# merge_task_to_integration <integration_worktree> <task_branch> <task_id>
+# Merges a task branch into the checked-out integration worktree.
+# Returns 0 on merge, 10 when already merged, 5 on merge failure.
 merge_task_to_integration() {
-  local repo_dir="$1"
-  local integration_branch="$2"
-  local task_branch="$3"
-  local task_id="$4"
+  local integration_worktree="$1"
+  local task_branch="$2"
+  local task_id="$3"
 
-  # Switch to integration branch
-  git -C "$repo_dir" checkout "$integration_branch" 2>/dev/null || {
-    echo "Error: Failed to checkout integration branch: ${integration_branch}" >&2
-    return 5
-  }
+  if git -C "$integration_worktree" merge-base --is-ancestor "$task_branch" HEAD >/dev/null 2>/dev/null; then
+    return 10
+  fi
 
   # Merge task branch with a merge commit
-  if ! git -C "$repo_dir" merge --no-ff "$task_branch" \
-       -m "Merge ${task_id} into integration branch" 2>/dev/null; then
+  if ! git -C "$integration_worktree" merge --no-ff "$task_branch" \
+       -m "Merge ${task_id} into integration branch" >/dev/null 2>/dev/null; then
     echo "Error: Merge conflict when merging ${task_id}" >&2
     # Abort the merge to leave integration branch clean
-    git -C "$repo_dir" merge --abort 2>/dev/null || true
+    git -C "$integration_worktree" merge --abort 2>/dev/null || true
     return 5
   fi
 
   return 0
 }
 
-# merge_tasks_in_order <repo_dir> <integration_branch> <task_ids_space_separated> <status_dir>
+# merge_tasks_in_order <repo_dir> <integration_worktree> <task_ids_space_separated> <status_dir> <tasks_yaml>
 # Merges multiple tasks into the integration branch in the given order.
-# Only merges tasks with status "succeeded". Returns count of merged tasks.
+# Only merges tasks with status "succeeded". Returns "merged:failures".
 merge_tasks_in_order() {
   local repo_dir="$1"
-  local integration_branch="$2"
+  local integration_worktree="$2"
   local task_ids="$3"
   local status_dir="$4"
+  local tasks_file="$5"
 
-  local merged=0
+  local merged=0 failures=0
 
   for tid in $task_ids; do
     local status
@@ -53,18 +51,31 @@ merge_tasks_in_order() {
     local task_branch="agent/${task_id_lower}"
 
     if ! branch_exists "$repo_dir" "$task_branch"; then
-      echo "Warning: Task branch not found for ${tid}, skipping merge" >&2
+      echo "Error: Task branch not found for ${tid}" >&2
+      record_task_status "$status_dir" "$tid" "failed"
+      record_task_reason "$status_dir" "$tid" "Task branch not found for merge"
+      mark_dependents_blocked "$tasks_file" "$tid" "$status_dir"
+      failures=$((failures + 1))
       continue
     fi
 
-    if merge_task_to_integration "$repo_dir" "$integration_branch" "$task_branch" "$tid"; then
+    local merge_exit=0
+    merge_task_to_integration "$integration_worktree" "$task_branch" "$tid" || merge_exit=$?
+
+    if [[ "$merge_exit" -eq 0 ]]; then
       merged=$((merged + 1))
+    elif [[ "$merge_exit" -eq 10 ]]; then
+      :
     else
+      record_task_status "$status_dir" "$tid" "failed"
+      record_task_reason "$status_dir" "$tid" "Merge conflict"
+      mark_dependents_blocked "$tasks_file" "$tid" "$status_dir"
+      failures=$((failures + 1))
       echo "Error: Failed to merge ${tid}" >&2
     fi
   done
 
-  echo "$merged"
+  echo "${merged}:${failures}"
 }
 
 # get_merge_order <tasks_yaml>

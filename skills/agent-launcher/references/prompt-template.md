@@ -9,7 +9,7 @@ Standard format for sub-agent launch prompts and handoff notes.
 
 ## Task Launch Prompt
 
-Each sub-agent receives a prompt file at `.agent-launcher/{task-id}.prompt.md`:
+Each sub-agent receives a prompt file at `.agent-launcher/{task-id}.prompt.md` inside its task worktree:
 
 ```markdown
 # Task: {TASK_ID} -- {TASK_NAME}
@@ -25,33 +25,15 @@ Each sub-agent receives a prompt file at `.agent-launcher/{task-id}.prompt.md`:
 - Do not modify files outside your declared scope.
 - Maximum iterations: {max_iterations from config.yaml}
 
-## Declared File Scope
-
-The following files are within scope for this task:
-
-{files_touched list, one per line}
-
-## Acceptance Criteria
-
-This task must satisfy:
-
-{acceptance_criteria IDs from tasks.yaml}
-
-## Context
-
-- Domain: {domain}
-- Estimated complexity: {estimated_complexity}
-- Dependencies completed: {depends_on task IDs, all succeeded}
-- Integration branch: {integration_branch}
-- Your working branch: agent/{task-id-lower}
 ```
 
 ### Prompt Rules
 
 1. The prompt must be self-contained. The sub-agent has no access to other tasks or the full spec.
 2. `prompt_context` is copied verbatim from tasks.yaml.
-3. File scope is explicitly listed so the agent knows its boundaries.
+3. File scope is enforced by guardrails; the executor also receives it via `AGENT_LAUNCHER_FILES_TOUCHED`.
 4. The commit message prefix (`{TASK_ID}:`) enables traceability in the integration branch.
+5. The prompt file is advisory; execution context such as task ID, prompt path, and max iterations is passed through environment variables.
 
 ## Handoff Note Format
 

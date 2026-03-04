@@ -61,11 +61,6 @@ runs:
 
         echo "$OUTPUT"
 
-        if [[ "$EXIT_CODE" -ne 0 ]] && [[ "$EXIT_CODE" -ne 4 ]]; then
-          echo "::error::launch.sh exited with code ${EXIT_CODE}"
-          exit "$EXIT_CODE"
-        fi
-
         # Extract metrics from run-report.yaml
         REPORT="${{ inputs.domain-path }}/run-report.yaml"
         if [[ -f "$REPORT" ]]; then
@@ -82,6 +77,10 @@ runs:
 
           BRANCH=$(grep 'integration_branch:' "$REPORT" | head -1 | sed 's/.*: *//' | tr -d '"')
           echo "integration_branch=$BRANCH" >> "$GITHUB_OUTPUT"
+        fi
+
+        if [[ "$EXIT_CODE" -ne 0 ]] && [[ "$EXIT_CODE" -ne 4 ]] && [[ "$EXIT_CODE" -ne 5 ]]; then
+          echo "::error::launch.sh exited with code ${EXIT_CODE}"
         fi
 
         exit "$EXIT_CODE"

@@ -16,12 +16,12 @@ Retry, block, resume, and escalation rules for agent-launcher.
 |-----------|---------|--------|
 | Max retries per task | `max_iterations` from config.yaml | Configurable |
 | Retry delay | None (immediate) | Fixed |
-| Retry scope | Same branch, clean state | Automatic |
+| Retry scope | Same branch, reset to current integration branch tip | Automatic |
 
 When a task fails:
 
 1. Increment the retry counter.
-2. If retries < `max_iterations`, reset the task branch to its pre-execution state and re-run.
+2. If retries < `max_iterations`, reset the task branch to the current integration branch tip, recreate the task worktree, and re-run.
 3. If retries >= `max_iterations`, mark the task as `failed` and stop retrying.
 
 Retries are appropriate for transient failures (network timeouts, flaky tests). They are NOT appropriate for:
@@ -36,7 +36,8 @@ When a task reaches terminal `failed` state:
 1. All direct dependents are marked `blocked`.
 2. All transitive dependents (dependents of dependents) are also marked `blocked`.
 3. Blocking is immediate — sibling tasks in the same phase continue to run.
-4. Blocked tasks are never executed, even if other dependencies succeed.
+4. Tasks whose dependencies are not satisfied by the current phase are also marked `blocked` for the current run.
+5. Blocked tasks are never executed in that run, even if other dependencies succeed later.
 
 Example:
 ```
@@ -49,10 +50,11 @@ A (failed) -> B (blocked) -> D (blocked)
 When `--resume <execution-id>` is provided:
 
 1. Load the existing `run-report.yaml` for that execution ID.
-2. Tasks with `status: succeeded` are marked `skipped` — their branches and commits are preserved.
-3. Tasks with `status: failed` are reset to `pending` — they will be re-attempted.
-4. Tasks with `status: blocked` are re-evaluated — if their dependencies now succeed, they become eligible.
-5. The integration branch is reused, not recreated.
+2. Reject resume if `run-report.yaml` is missing or its `execution_id` does not match the requested ID.
+3. Tasks with `status: succeeded` are restored as `succeeded` and skipped by the scheduler.
+4. Tasks with `status: failed` are reset to `pending` — they will be re-attempted.
+5. Tasks with `status: blocked` are re-evaluated from dependency state in the new run.
+6. The integration branch is reused, not recreated.
 
 Resume is idempotent: running resume multiple times on a fully succeeded run produces no changes.
 
@@ -65,7 +67,8 @@ When the launcher cannot make further progress (all remaining tasks are failed o
    - Which tasks succeeded and were merged
    - Which tasks failed and why
    - Which tasks are blocked and by what
-3. Exit with code 4 (task execution failure) if any tasks failed, or code 0 if all succeeded.
+3. Exit with code 5 if any merge failed.
+4. Otherwise exit with code 4 if any tasks failed or were blocked, or code 0 if all tasks succeeded.
 
 The handoff note is designed to be copy-pasted into a PR description or issue comment.
 
@@ -78,9 +81,8 @@ The launcher stops execution when:
 | All tasks succeeded | Generate report, exit | 0 |
 | Some tasks failed, rest blocked | Generate report with failure detail | 4 |
 | Missing input files | Error message | 1 |
-| Invalid tasks.yaml | Validation error | 2 |
+| Invalid tasks.yaml or repo state | Validation error | 2 |
 | Workspace setup failure | Error message | 3 |
-| Merge failure | Mark task failed, continue others | 5 |
-| Internal error | Error message | 6 |
+| Merge failure | Mark task failed, continue others, then exit after report | 5 |
 
 The launcher never loops indefinitely. Once all phases are processed and all retries exhausted, it always terminates.

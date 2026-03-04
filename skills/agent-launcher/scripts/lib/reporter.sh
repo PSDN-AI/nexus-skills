@@ -3,7 +3,7 @@
 # Sourced by launch.sh; not intended for standalone execution.
 
 # generate_run_report <output_file> <tasks_yaml> <status_dir> <exec_id> <domain>
-#   <target_repo> <base_branch> <integration_branch> <started_at> <finished_at>
+#   <target_repo> <base_branch> <integration_branch> <started_at> <finished_at> <merged_count>
 # Writes the run-report.yaml file.
 generate_run_report() {
   local output_file="$1"
@@ -16,6 +16,7 @@ generate_run_report() {
   local integration_branch="$8"
   local started_at="$9"
   local finished_at="${10}"
+  local merged_count="${11}"
 
   local succeeded=0 failed=0 blocked=0 skipped=0 total=0
 
@@ -64,9 +65,7 @@ YAML
     commit_sha=""
     reason=""
 
-    if [[ "$status" == "succeeded" ]]; then
-      commit_sha=$(cat "${status_dir}/${tid}.sha" 2>/dev/null || echo "")
-    fi
+    commit_sha=$(cat "${status_dir}/${tid}.sha" 2>/dev/null || echo "")
 
     if [[ "$status" == "blocked" ]] || [[ "$status" == "failed" ]]; then
       reason=$(cat "${status_dir}/${tid}.reason" 2>/dev/null || echo "")
@@ -96,7 +95,7 @@ summary:
   failed: ${failed}
   blocked: ${blocked}
   skipped: ${skipped}
-  merged_to_integration_branch: ${succeeded}
+  merged_to_integration_branch: ${merged_count}
   pull_request_ready: ${pr_ready}
 YAML
 }
@@ -174,11 +173,10 @@ print_human_summary() {
     if [[ "${failed:-0}" -gt 0 ]]; then
       echo ""
       echo "  Failed tasks require attention:"
-      grep -A2 'status: failed' "$report_file" | grep 'id:' | while IFS= read -r line; do
-        local tid
-        tid="${line##*id: }"
-        echo "    - ${tid}"
-      done
+      awk '
+        $1 == "-" && $2 == "id:" { tid=$3 }
+        $1 == "status:" && $2 == "failed" && tid != "" { print "    - " tid }
+      ' "$report_file"
     fi
   fi
 }

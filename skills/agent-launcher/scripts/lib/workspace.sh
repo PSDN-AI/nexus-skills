@@ -13,7 +13,7 @@ create_integration_branch() {
 
   local branch_name="agent-launcher/${domain}/${exec_id}"
 
-  git -C "$repo_dir" checkout -b "$branch_name" "$base_branch" 2>/dev/null || {
+  git -C "$repo_dir" branch "$branch_name" "$base_branch" 2>/dev/null || {
     echo "Error: Failed to create integration branch: ${branch_name}" >&2
     return 3
   }
@@ -21,45 +21,60 @@ create_integration_branch() {
   echo "$branch_name"
 }
 
-# create_task_branch <repo_dir> <integration_branch> <task_id>
+# create_task_branch <repo_dir> <integration_branch> <task_id> [reset_existing]
 # Creates an isolated branch for a single task's work.
 # Outputs the branch name.
 create_task_branch() {
   local repo_dir="$1"
   local integration_branch="$2"
   local task_id="$3"
+  local reset_existing="${4:-false}"
 
   local task_id_lower
   task_id_lower=$(echo "$task_id" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
   local branch_name="agent/${task_id_lower}"
 
-  git -C "$repo_dir" branch "$branch_name" "$integration_branch" 2>/dev/null || {
-    echo "Error: Failed to create task branch: ${branch_name}" >&2
-    return 3
-  }
+  if branch_exists "$repo_dir" "$branch_name"; then
+    if [[ "$reset_existing" == "true" ]]; then
+      git -C "$repo_dir" branch -f "$branch_name" "$integration_branch" 2>/dev/null || {
+        echo "Error: Failed to reset task branch: ${branch_name}" >&2
+        return 3
+      }
+    fi
+  else
+    git -C "$repo_dir" branch "$branch_name" "$integration_branch" 2>/dev/null || {
+      echo "Error: Failed to create task branch: ${branch_name}" >&2
+      return 3
+    }
+  fi
 
   echo "$branch_name"
 }
 
-# checkout_task_branch <repo_dir> <branch_name>
-# Switches to a task branch for execution.
-checkout_task_branch() {
+# create_branch_worktree <repo_dir> <branch_name> <worktree_path>
+# Creates a worktree checked out to the given branch.
+create_branch_worktree() {
   local repo_dir="$1"
   local branch_name="$2"
+  local worktree_path="$3"
 
-  git -C "$repo_dir" checkout "$branch_name" 2>/dev/null || {
-    echo "Error: Failed to checkout branch: ${branch_name}" >&2
+  mkdir -p "$(dirname "$worktree_path")"
+  git -C "$repo_dir" worktree add --force "$worktree_path" "$branch_name" >/dev/null 2>&1 || {
+    echo "Error: Failed to create worktree for branch: ${branch_name}" >&2
     return 3
   }
+
+  echo "$worktree_path"
 }
 
-# cleanup_task_branch <repo_dir> <branch_name>
-# Deletes a task branch after successful merge or failure.
-cleanup_task_branch() {
+# remove_branch_worktree <repo_dir> <worktree_path>
+# Removes a worktree path and prunes stale worktree metadata.
+remove_branch_worktree() {
   local repo_dir="$1"
-  local branch_name="$2"
+  local worktree_path="$2"
 
-  git -C "$repo_dir" branch -D "$branch_name" 2>/dev/null || true
+  git -C "$repo_dir" worktree remove --force "$worktree_path" >/dev/null 2>&1 || true
+  git -C "$repo_dir" worktree prune >/dev/null 2>&1 || true
 }
 
 # get_branch_diff_files <repo_dir> <base_branch> <task_branch>
@@ -77,8 +92,7 @@ get_branch_diff_files() {
 is_repo_clean() {
   local repo_dir="$1"
 
-  if git -C "$repo_dir" diff --quiet 2>/dev/null && \
-     git -C "$repo_dir" diff --cached --quiet 2>/dev/null; then
+  if [[ -z "$(git -C "$repo_dir" status --porcelain --untracked-files=normal 2>/dev/null)" ]]; then
     return 0
   fi
   return 1
@@ -97,5 +111,5 @@ branch_exists() {
   local repo_dir="$1"
   local branch_name="$2"
 
-  git -C "$repo_dir" rev-parse --verify "$branch_name" >/dev/null 2>&1
+  git -C "$repo_dir" show-ref --verify --quiet "refs/heads/${branch_name}"
 }
